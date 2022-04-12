@@ -7,7 +7,7 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	_ "github.com/micro/go-plugins/registry/consul/v2"
 	_ "github.com/micro/go-plugins/registry/etcdv3/v2"
-	proto "github.com/xtech-cloud/omo-msp-organization/proto/organization"
+	proto "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	"io"
 	"omo.msa.assignment/cache"
 	"omo.msa.assignment/config"
@@ -40,9 +40,10 @@ func main() {
 	// Initialise service
 	service.Init()
 	// Register Handler
-	_ = proto.RegisterSceneServiceHandler(service.Server(), new(grpc.SceneService))
-	_ = proto.RegisterGroupServiceHandler(service.Server(), new(grpc.GroupService))
-	_ = proto.RegisterRoomServiceHandler(service.Server(), new(grpc.RoomService))
+	_ = proto.RegisterTaskServiceHandler(service.Server(), new(grpc.TaskService))
+	_ = proto.RegisterAgentServiceHandler(service.Server(), new(grpc.AgentService))
+	_ = proto.RegisterTeamServiceHandler(service.Server(), new(grpc.TeamService))
+	_ = proto.RegisterFamilyServiceHandler(service.Server(), new(grpc.FamilyService))
 
 	app, _ := filepath.Abs(os.Args[0])
 

@@ -16,18 +16,16 @@ type Team struct {
 	UpdatedTime time.Time          `json:"updatedAt" bson:"updatedAt"`
 	DeleteTime  time.Time          `json:"deleteAt" bson:"deleteAt"`
 
-	Creator  string `json:"creator" bson:"creator"`
-	Operator string `json:"operator" bson:"operator"`
-	Scene    string `json:"scene" bson:"scene"`
-	Remark   string `json:"remark" bson:"remark"`
-	Contact  string `json:"contact" bson:"contact"`
-	Cover    string `json:"cover" bson:"cover"`
-
-	Master    string      `json:"master" bson:"master"`
-	Assistant string      `json:"assistant" bson:"assistant"`
-	Address   AddressInfo `json:"address" bson:"address"`
-	Location  string      `json:"location" bson:"location"`
-	Members   []string    `json:"members" bson:"members"`
+	Creator    string   `json:"creator" bson:"creator"`
+	Operator   string   `json:"operator" bson:"operator"`
+	Owner      string   `json:"owner" bson:"owner"`
+	Remark     string   `json:"remark" bson:"remark"`
+	Status     uint8    `json:"status" bson:"status"`
+	Region     string   `json:"region" bson:"region"`
+	Master     string   `json:"master" bson:"master"`
+	Assistants []string `json:"assistants" bson:"assistants"`
+	Tags       []string `json:"tags" bson:"tags"`
+	Members    []string `json:"members" bson:"members"`
 }
 
 func CreateTeam(info *Team) error {
@@ -75,7 +73,21 @@ func GetTeamByID(id uint64) (*Team, error) {
 	return model, nil
 }
 
-func RemoveTeam(uid,operator string) error {
+func GetTeamByName(owner, name string) (*Team, error) {
+	msg := bson.M{"owner": owner, "name":name, "deleteAt": new(time.Time)}
+	result, err := findOneBy(TableTeam, msg)
+	if err != nil {
+		return nil, err
+	}
+	model := new(Team)
+	err1 := result.Decode(model)
+	if err1 != nil {
+		return nil, err1
+	}
+	return model, nil
+}
+
+func RemoveTeam(uid, operator string) error {
 	_, err := removeOne(TableTeam, uid, operator)
 	return err
 }
@@ -97,8 +109,8 @@ func GetAllTeams() ([]*Team, error) {
 	return items, nil
 }
 
-func GetTeamsByScene(scene string) ([]*Team, error) {
-	cursor, err1 := findMany(TableTeam, bson.M{"scene": scene, "deleteAt": new(time.Time)}, 0)
+func GetTeamsByOwner(owner string) ([]*Team, error) {
+	cursor, err1 := findMany(TableTeam, bson.M{"scene": owner, "deleteAt": new(time.Time)}, 0)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -120,8 +132,26 @@ func UpdateTeamBase(uid, name, remark, operator string) error {
 	return err
 }
 
-func UpdateTeamCover(uid, cover, operator string) error {
-	msg := bson.M{"cover": cover,"operator": operator, "updatedAt": time.Now()}
+func UpdateTeamAssistants(uid, operator string, list []string) error {
+	msg := bson.M{"operator": operator, "assistants": list, "updatedAt": time.Now()}
+	_, err := updateOne(TableTeam, uid, msg)
+	return err
+}
+
+func UpdateTeamTags(uid, operator string, list []string) error {
+	msg := bson.M{"operator": operator, "tags": list, "updatedAt": time.Now()}
+	_, err := updateOne(TableTeam, uid, msg)
+	return err
+}
+
+func UpdateTeamStatus(uid, operator string, st uint8) error {
+	msg := bson.M{"operator": operator, "status": st, "updatedAt": time.Now()}
+	_, err := updateOne(TableTeam, uid, msg)
+	return err
+}
+
+func UpdateTeamRegion(uid, region, operator string) error {
+	msg := bson.M{"operator": operator, "region": region, "updatedAt": time.Now()}
 	_, err := updateOne(TableTeam, uid, msg)
 	return err
 }
@@ -132,32 +162,8 @@ func UpdateTeamMembers(uid, operator string, members []string) error {
 	return err
 }
 
-func UpdateTeamAddress(uid, operator string, address AddressInfo) error {
-	msg := bson.M{"operator": operator, "address": address, "updatedAt": time.Now()}
-	_, err := updateOne(TableTeam, uid, msg)
-	return err
-}
-
-func UpdateTeamLocation(uid, location, operator string) error {
-	msg := bson.M{"location": location,"operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTeam, uid, msg)
-	return err
-}
-
-func UpdateTeamContact(uid, phone, operator string) error {
-	msg := bson.M{"contact": phone,"operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTeam, uid, msg)
-	return err
-}
-
 func UpdateTeamMaster(uid, member, operator string) error {
-	msg := bson.M{"master": member,"operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTeam, uid, msg)
-	return err
-}
-
-func UpdateTeamAssistant(uid, member, operator string) error {
-	msg := bson.M{"assistant": member,"operator": operator, "updatedAt": time.Now()}
+	msg := bson.M{"master": member, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableTeam, uid, msg)
 	return err
 }

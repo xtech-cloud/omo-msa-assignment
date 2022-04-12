@@ -1,28 +1,38 @@
 package proxy
 
-import "time"
+import (
+	"time"
+)
 
-type DisplayInfo struct {
-	Type uint32 `json:"type" bson:"type"` //产品类型
-	Group string `json:"group" bson:"group"` //所在组
-	Updated time.Time `json:"updatedAt" bson:"updatedAt"`
-	Showings []string `json:"showings" bson:"showings"` //预备展
+type DateInfo struct {
+	Begin string `json:"begin" bson:"begin"`
+	End   string `json:"end" bson:"end"`
 }
 
-type DomainInfo struct {
-	Type uint8 `json:"type" bson:"type"`
-	UID string `json:"uid" bson:"uid"`
-	Name string `json:"name" bson:"name"`
+type RecordInfo struct {
+	UID         string    `json:"uid" bson:"uid"`
+	CreatedTime time.Time `json:"createdAt" bson:"createdAt"`
+	Creator     string    `json:"creator" bson:"creator"`
+
+	Name   string   `json:"name" bson:"name"`
+	Remark string   `json:"remark" bson:"remark"`
+	Executor  string   `json:"executor" bson:"executor"`
+	Status uint8 `json:"status" bson:"status"`
+	Tags   []string `json:"tags" bson:"tags"`
+	Assets []string `json:"assets" bson:"assets"`
+}
+
+type CustodianInfo struct {
+	User   string `json:"user" bson:"user"`
+	Identifies []IdentifyInfo `json:"identify" bson:"identify"`
+}
+
+type IdentifyInfo struct {
+	Child   string `json:"child" bson:"child"`
 	Remark string `json:"remark" bson:"remark"`
-	Keywords string `json:"keywords" bson:"keywords"`
-	Updated time.Time `json:"updatedAt" bson:"updatedAt"`
 }
 
-func (mine *DisplayInfo)Clone() *DisplayInfo {
-	tmp := new(DisplayInfo)
-	tmp.Type = mine.Type
-	tmp.Group = mine.Group
-	tmp.Showings = mine.Showings
-	tmp.Updated = mine.Updated
-	return tmp
+type MemberInfo struct {
+	User   string `json:"user" bson:"user"`
+	Remark string `json:"remark" bson:"remark"`
 }

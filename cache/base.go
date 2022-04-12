@@ -1,9 +1,8 @@
 package cache
 
 import (
-	"github.com/micro/go-micro/v2/logger"
-	"omo.msa.organization/config"
-	"omo.msa.organization/proxy/nosql"
+	"omo.msa.assignment/config"
+	"omo.msa.assignment/proxy/nosql"
 	"reflect"
 	"time"
 )
@@ -19,29 +18,17 @@ type baseInfo struct {
 }
 
 type cacheContext struct {
-	scenes []*SceneInfo
 }
 
 var cacheCtx *cacheContext
 
 func InitData() error {
 	cacheCtx = &cacheContext{}
-	cacheCtx.scenes = make([]*SceneInfo, 0, 200)
 
 	err := nosql.InitDB(config.Schema.Database.IP, config.Schema.Database.Port, config.Schema.Database.Name, config.Schema.Database.Type)
 	if nil != err {
 		return err
 	}
-
-	scenes, err := nosql.GetAllScenes()
-	if err == nil {
-		for _, scene := range scenes {
-			tmp := new(SceneInfo)
-			tmp.initInfo(scene)
-			cacheCtx.scenes = append(cacheCtx.scenes, tmp)
-		}
-	}
-	logger.Infof("init scenes that number = %d", len(cacheCtx.scenes))
 
 	return nil
 }

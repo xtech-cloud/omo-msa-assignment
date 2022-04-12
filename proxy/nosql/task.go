@@ -5,7 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"omo.msa.organization/proxy"
+	"omo.msa.assignment/proxy"
 	"time"
 )
 
@@ -18,23 +18,21 @@ type Task struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Name        string              `json:"name" bson:"name"`
-	Type        uint8               `json:"type" bson:"type"`
-	Status      uint8               `json:"status" bson:"status"`
-	Short       string 				`json:"short" bson:"short"`
-	Cover       string              `json:"cover" bson:"cover"`
-	Master      string              `json:"master" bson:"master"`
-	Remark      string              `json:"remark" bson:"remark"`
-	Entity      string              `json:"entity" bson:"entity"`
-	Location    string              `json:"location" bson:"location"`
-	Supporter   string              `json:"supporter" bson:"supporter"`
-	Bucket      string `json:"bucket" bson:"bucket"`
-	Address     AddressInfo         `json:"address" bson:"address"`
-	//Exhibitions []string            `json:"exhibitions" bson:"exhibitions"`
-	//Displays    []proxy.ShowingInfo `json:"displays" bson:"displays"`
-	Members     []string            `json:"members" bson:"members"`
-	Parents     []string            `json:"parents" bson:"parents"`
-	Domains     []proxy.DomainInfo 	`json:"domains" bson:"domains"`
+	Name   string `json:"name" bson:"name"`
+	Type   uint8  `json:"type" bson:"type"`
+	Status uint8  `json:"status" bson:"status"`
+	Remark string `json:"remark" bson:"remark"`
+	Target string `json:"target" bson:"target"`
+
+	Owner     string             `json:"owner" bson:"owner"`
+	Way       string             `json:"way" bson:"way"`
+	Duration  proxy.DateInfo     `json:"duration" bson:"duration"`
+	Executors []string           `json:"executors" bson:"executors"`
+	PreTasks  []string           `json:"preTasks" bson:"preTasks"`
+	Regions   []string           `json:"regions" bson:"regions"`
+	Tags      []string           `json:"tags" bson:"tags"`
+	Assets    []string           `json:"assets" bson:"assets"`
+	Records   []proxy.RecordInfo `json:"records" bson:"records"`
 }
 
 func CreateTask(info *Task) error {
@@ -63,18 +61,80 @@ func GetTask(uid string) (*Task, error) {
 	return model, nil
 }
 
-func GetTaskByMaster(user string) (*Task, error) {
-	msg := bson.M{"master": user}
-	result, err := findOneBy(TableTask, msg)
-	if err != nil {
-		return nil, err
-	}
-	model := new(Task)
-	err1 := result.Decode(model)
+func GetTasksByOwner(uid string) ([]*Task, error) {
+	msg := bson.M{"owner": uid}
+	cursor, err1 := findMany(TableTask, msg, 0)
 	if err1 != nil {
 		return nil, err1
 	}
-	return model, nil
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTasksByType(owner string, tp uint8) ([]*Task, error) {
+	msg := bson.M{"owner": owner, "type": tp}
+	cursor, err1 := findMany(TableTask, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTasksByAgent(owner, agent string) ([]*Task, error) {
+	msg := bson.M{"owner": owner, "executors": bson.M{"$elemMatch": bson.M{"$eq": agent}}}
+	cursor, err1 := findMany(TableTask, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTasksByTarget(owner, client string) ([]*Task, error) {
+	msg := bson.M{"owner": owner, "target": client}
+	cursor, err1 := findMany(TableTask, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
 }
 
 func GetAllTasks() ([]*Task, error) {
@@ -101,14 +161,14 @@ func UpdateTaskBase(uid, name, remark, operator string) error {
 	return err
 }
 
-func UpdateTaskMaster(uid, master, operator string) error {
-	msg := bson.M{"master": master, "operator": operator, "updatedAt": time.Now()}
+func UpdateTaskTags(uid, operator string, tags []string) error {
+	msg := bson.M{"tags": tags, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableTask, uid, msg)
 	return err
 }
 
-func UpdateTaskCover(uid, icon, operator string) error {
-	msg := bson.M{"cover": icon, "operator": operator, "updatedAt": time.Now()}
+func UpdateTaskExecutors(uid, operator string, list []string) error {
+	msg := bson.M{"executors": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableTask, uid, msg)
 	return err
 }
@@ -119,50 +179,8 @@ func UpdateTaskType(uid, operator string, tp uint8) error {
 	return err
 }
 
-func UpdateTaskLocal(uid, local, operator string) error {
-	msg := bson.M{"location": local, "operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTask, uid, msg)
-	return err
-}
-
-func UpdateTaskAddress(uid, operator string, address AddressInfo) error {
-	msg := bson.M{"address": address, "operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTask, uid, msg)
-	return err
-}
-
 func UpdateTaskStatus(uid string, status uint8, operator string) error {
 	msg := bson.M{"status": status, "operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTask, uid, msg)
-	return err
-}
-
-func UpdateTaskDomains(uid, operator string, domains []proxy.DomainInfo) error {
-	msg := bson.M{"domains": domains, "operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTask, uid, msg)
-	return err
-}
-
-func UpdateTaskShort(uid, operator, name string) error {
-	msg := bson.M{"short": name, "operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTask, uid, msg)
-	return err
-}
-
-func UpdateTaskSupporter(uid, supporter, operator string) error {
-	msg := bson.M{"supporter": supporter, "operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTask, uid, msg)
-	return err
-}
-
-func UpdateTaskBucket(uid, bucket, operator string) error {
-	msg := bson.M{"bucket": bucket, "operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableTask, uid, msg)
-	return err
-}
-
-func UpdateTaskParents(uid, operator string, list []string) error {
-	msg := bson.M{"parents": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableTask, uid, msg)
 	return err
 }
@@ -172,45 +190,38 @@ func RemoveTask(uid, operator string) error {
 	return err
 }
 
-func AppendTaskMember(uid string, member string) error {
+func AppendTaskRecord(uid string, data proxy.RecordInfo) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
-	msg := bson.M{"members": member}
+	msg := bson.M{"records": data}
 	_, err := appendElement(TableTask, uid, msg)
 	return err
 }
 
-func SubtractTaskMember(uid, member string) error {
+func SubtractTaskRecord(uid, record string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
-	msg := bson.M{"members": member}
+	msg := bson.M{"records.uid": record}
 	_, err := removeElement(TableTask, uid, msg)
 	return err
 }
 
-//func UpdateTaskDisplay(uid, operator string, list []proxy.ShowingInfo) error {
-//	msg := bson.M{"displays": list, "operator": operator, "updatedAt": time.Now()}
-//	_, err := updateOne(TableTask, uid, msg)
-//	return err
-//}
-//
-//func AppendTaskDisplay(uid string, display *proxy.ShowingInfo) error {
-//	if len(uid) < 1 {
-//		return errors.New("the uid is empty")
-//	}
-//	msg := bson.M{"displays": display}
-//	_, err := appendElement(TableTask, uid, msg)
-//	return err
-//}
-//
-//func SubtractTaskDisplay(uid, display string) error {
-//	if len(uid) < 1 {
-//		return errors.New("the uid is empty")
-//	}
-//	msg := bson.M{"displays": bson.M{"uid": display}}
-//	_, err := removeElement(TableTask, uid, msg)
-//	return err
-//}
+func AppendTaskExecutor(uid, user string) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"executors": user}
+	_, err := appendElement(TableTask, uid, msg)
+	return err
+}
 
+func SubtractTaskExecutor(uid, user string) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"executors": user}
+	_, err := removeElement(TableTask, uid, msg)
+	return err
+}

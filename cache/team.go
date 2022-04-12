@@ -2,80 +2,89 @@ package cache
 
 import (
 	"errors"
-	pb "github.com/xtech-cloud/omo-msp-organization/proto/organization"
-	"omo.msa.organization/proxy/nosql"
-	"omo.msa.organization/tool"
+	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"omo.msa.assignment/proxy/nosql"
+	"time"
 )
 
-type RoomInfo struct {
+type TeamInfo struct {
+	Status uint8
 	baseInfo
 	Remark string
-	Scene string
-	Quotes []string
-	//displays []*proxy.DisplayInfo
+	Owner string
+	Master string
+	Region string
+	Tags []string
+	Assistants []string
+	Members []string
 }
 
-func (mine *cacheContext)GetRoom(uid string) *RoomInfo {
-	for _, scene := range mine.scenes {
-		info := scene.GetRoom(uid)
-		if  info != nil {
-			return info
-		}
+func (mine *cacheContext) CreateTeam(info *pb.ReqTeamAdd) (*TeamInfo, error) {
+	db := new(nosql.Team)
+	db.UID = primitive.NewObjectID()
+	db.ID = nosql.GetTeamNextID()
+	db.CreatedTime = time.Now()
+	db.UpdatedTime = time.Now()
+	db.Operator = info.Operator
+	db.Creator = info.Operator
+	db.Name = info.Name
+	db.Remark = info.Remark
+	db.Status = uint8(TaskStatusIdle)
+	db.Owner = info.Owner
+	db.Master = ""
+	db.Tags = make([]string, 0, 1)
+	db.Members = make([]string, 0, 1)
+	db.Assistants = make([]string, 0, 1)
+	err := nosql.CreateTeam(db)
+	if err == nil {
+		tmp := new(TeamInfo)
+		tmp.initInfo(db)
+		return tmp, nil
 	}
-	return nil
+	return nil, err
 }
 
-func (mine *cacheContext)GetRoomsByDevice(sn string) []*RoomInfo {
-	list := make([]*RoomInfo, 0, 10)
-	for _, scene := range mine.scenes {
-		arr := scene.GetRoomsByDevice(sn)
-		if  arr != nil && len(arr) > 0 {
-			list = append(list, arr...)
+func (mine *cacheContext) GetTeam(uid string) (*TeamInfo,error) {
+	db,err := nosql.GetTeam(uid)
+	if err == nil {
+		info := new(TeamInfo)
+		info.initInfo(db)
+		return info,nil
+	}
+	return nil,err
+}
+
+func (mine *cacheContext) GetTeamByOwner(scene string) []*TeamInfo {
+	list := make([]*TeamInfo, 0, 10)
+	dbs,err := nosql.GetTeamsByOwner(scene)
+	if err == nil {
+		for _, db := range dbs {
+			info := new(TeamInfo)
+			info.initInfo(db)
+			list = append(list, info)
 		}
 	}
 	return list
 }
 
-func (mine *cacheContext)GetRoomsByQuote(quote string) []*RoomInfo {
-	list := make([]*RoomInfo, 0, 10)
-	for _, scene := range mine.scenes {
-		arr := scene.GetRoomsByQuote(quote)
-		if  arr != nil && len(arr) > 0 {
-			list = append(list, arr...)
-		}
+func (mine *cacheContext) HadTeamByName(scene, name string) bool {
+	db,_ := nosql.GetTeamByName(scene, name)
+	if db == nil {
+		return false
 	}
-	return list
+	return true
 }
 
-func (mine *cacheContext)HadBindDeviceInRoom(sn string) bool {
-	for _, scene := range mine.scenes {
-		arr := scene.GetRoomsByDevice(sn)
-		if  arr != nil && len(arr) > 0 {
-			return true
-		}
+func (mine *cacheContext) RemoveTeam(uid, operator string) error {
+	if len(uid) < 1 {
+		return errors.New("the team uid is empty")
 	}
-	return false
+	err := nosql.RemoveTeam(uid, operator)
+	return err
 }
 
-func (mine *cacheContext)GetRoomBy(scene, uid string) *RoomInfo {
-	for _, item := range mine.scenes {
-		if item.UID == scene {
-			return item.GetRoom(uid)
-		}
-	}
-	return nil
-}
-
-func (mine *cacheContext)RemoveRoom(uid, operator string) error {
-	for _, scene := range mine.scenes {
-		if scene.HadRoom(uid) {
-			return scene.RemoveRoom(uid, operator)
-		}
-	}
-	return nil
-}
-
-func (mine *RoomInfo)initInfo(db *nosql.Room)  {
+func (mine *TeamInfo) initInfo(db *nosql.Team) {
 	mine.UID = db.UID.Hex()
 	mine.ID = db.ID
 	mine.UpdateTime = db.UpdatedTime
@@ -84,26 +93,23 @@ func (mine *RoomInfo)initInfo(db *nosql.Room)  {
 	mine.Operator = db.Operator
 	mine.Name = db.Name
 	mine.Remark = db.Remark
-	mine.Scene = db.Scene
-	mine.Quotes = db.Quotes
-	if mine.Quotes == nil {
-		mine.Quotes = make([]string, 0, 1)
-	}
-
-	//mine.displays = make([]*proxy.DisplayInfo, 0, len(db.Displays))
-	//for _, display := range db.Displays {
-	//	mine.displays = append(mine.displays, display.Clone())
-	//}
+	mine.Owner = db.Owner
+	mine.Master = db.Master
+	mine.Region = db.Region
+	mine.Status = db.Status
+	mine.Tags = db.Tags
+	mine.Assistants = db.Assistants
+	mine.Members = db.Members
 }
 
-func (mine *RoomInfo)UpdateBase(name, remark, operator string) error {
+func (mine *TeamInfo) UpdateBase(name, remark, operator string) error {
 	if len(name) < 1 {
 		name = mine.Name
 	}
 	if len(remark) < 1 {
 		remark = mine.Remark
 	}
-	err := nosql.UpdateRoomBase(mine.UID, name, remark, operator)
+	err := nosql.UpdateTeamBase(mine.UID, name, remark, operator)
 	if err == nil {
 		mine.Name = name
 		mine.Remark = remark
@@ -112,158 +118,96 @@ func (mine *RoomInfo)UpdateBase(name, remark, operator string) error {
 	return err
 }
 
-func (mine *RoomInfo)Devices() []*DeviceInfo {
-	dbs,_ := nosql.GetDevicesByRoom(mine.Scene, mine.UID)
-	devices := make([]*DeviceInfo, 0, 5)
-	for _, device := range dbs {
-		tmp := new(DeviceInfo)
-		tmp.initInfo(device)
-		devices = append(devices, tmp)
-	}
-	return devices
-}
-
-func (mine *RoomInfo)UpdateQuotes(operator string, list []string) error {
-	if list == nil {
-		list = make([]string, 0, 1)
-	}
-
-	err := nosql.UpdateRoomQuotes(mine.UID, operator, list)
+func (mine *TeamInfo) UpdateMaster(master, operator string) error {
+	err := nosql.UpdateTeamMaster(mine.UID, master, operator)
 	if err == nil {
-		mine.Quotes = list
+		mine.Master = master
 		mine.Operator = operator
 	}
 	return err
 }
 
-func (mine *RoomInfo)HadQuote(quote string) bool {
-	for i := 0;i < len(mine.Quotes);i += 1 {
-		if mine.Quotes[i] == quote {
-			return true
-		}
-	}
-	return false
-}
-
-func (mine *RoomInfo)HadQuotes(quotes []string) bool {
-	for i := 0;i < len(mine.Quotes);i += 1 {
-		if tool.HasItem(quotes, mine.Quotes[i]) {
-			return true
-		}
-	}
-	return false
-}
-
-func (mine *RoomInfo)UpdateDisplays(sn, group, operator string, showing bool, displays []string) error {
-	device := mine.GetDevice(sn)
-	if device == nil {
-		return errors.New("the device had not found by sn")
-	}
-	if displays == nil {
-		displays = make([]string, 0, 1)
-	}
-	return device.UpdateShowings(operator, displays)
-	//if showing {
-	//	return device.UpdateShowings(operator, displays)
-	//}else{
-		//tempArr := make([]*proxy.DisplayInfo, 0, len(mine.displays))
-		//tempArr = append(tempArr, mine.displays...)
-		//had := false
-		//for _, item := range tempArr {
-		//	if item.Type == device.Type && item.Group == group {
-		//		had = true
-		//		item.Showings = displays
-		//		item.Updated = time.Now()
-		//		break
-		//	}
-		//}
-		//if !had {
-		//	tempArr = append(tempArr, &proxy.DisplayInfo{Group: group, Type: device.Type, Showings: make([]string, 0, 1), Updated: time.Now()})
-		//}
-		//err := nosql.UpdateRoomDisplays(mine.UID, operator, tempArr)
-		//if err == nil {
-		//	mine.displays = tempArr
-		//}
-		//return err
-	//}
-}
-
-func (mine *RoomInfo)HadDevice(sn string) bool {
-	devices := mine.Devices()
-	for _, device := range devices {
-		if device.SN == sn {
-			return true
-		}
-	}
-	return false
-}
-
-func (mine *RoomInfo)HadDeviceByType(tp uint8) bool {
-	devices := mine.Devices()
-	for _, device := range devices {
-		if device.Type == uint32(tp) {
-			return true
-		}
-	}
-	return false
-}
-
-func (mine *RoomInfo)Products() []*pb.ProductInfo {
-	devices := mine.Devices()
-	list := make([]*pb.ProductInfo, 0, len(devices))
-	for _, device := range devices {
-		tmp := &pb.ProductInfo{Uid: device.SN, Type: device.Type, Remark: device.Remark}
-		tmp.Displays = mine.switchDisplays(device.Type, device.displays)
-		list = append(list, tmp)
-	}
-	return list
-}
-
-func (mine *RoomInfo)switchDisplays(tp uint32, arr []string) []*pb.DisplayInfo {
-	list := make([]*pb.DisplayInfo, 0, 10)
-	tmp := new(pb.DisplayInfo)
-	tmp.Group = ""
-	tmp.Showings = arr
-	list = append(list, tmp)
-	//prepares := mine.GetPrepareDisplays(tp)
-	//for _, prepare := range prepares {
-	//	tmp := new(pb.DisplayInfo)
-	//	tmp.Group = prepare.Group
-	//	tmp.Prepares = prepare.Showings
-	//	tmp.Showings = arr
-	//	list = append(list, tmp)
-	//}
-	return list
-}
-
-func (mine *RoomInfo)GetDevice(sn string) *DeviceInfo {
-	devices := mine.Devices()
-	for _, device := range devices {
-		if device.SN == sn {
-			return device
-		}
-	}
-	return nil
-}
-
-//func (mine *RoomInfo)GetPrepareDisplays(tp uint32) []*proxy.DisplayInfo {
-//	list := make([]*proxy.DisplayInfo, 0, 3)
-//	for _, item := range mine.displays {
-//		if item.Type == tp {
-//			list = append(list, item)
-//		}
-//	}
-//	return list
-//}
-
-func (mine *RoomInfo)AppendDevice(device, remark, operator string, tp uint32) error {
-	if mine.HadDevice(device){
-		return nil
-	}
-	info,err := cacheCtx.checkDevice (mine.Scene, mine.UID, device, remark, operator, tp)
+func (mine *TeamInfo) UpdateStatus(operator string, st uint8) error {
+	err := nosql.UpdateTeamStatus(mine.UID, operator, st)
 	if err == nil {
-		return info.UpdateRoom(mine.UID, operator)
+		mine.Status = st
+		mine.Operator = operator
 	}
 	return err
 }
 
+func (mine *TeamInfo) UpdateRegion(region, operator string) error {
+	err := nosql.UpdateTeamRegion(mine.UID, region, operator)
+	if err == nil {
+		mine.Region = region
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *TeamInfo) UpdateTags(operator string, tags []string) error {
+	err := nosql.UpdateTeamTags(mine.UID, operator, tags)
+	if err == nil {
+		mine.Tags = tags
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *TeamInfo) UpdateAssistants(operator string, list []string) error {
+	err := nosql.UpdateTeamAssistants(mine.UID, operator, list)
+	if err == nil {
+		mine.Assistants = list
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *TeamInfo) UpdateMembers(operator string, list []string) error {
+	err := nosql.UpdateTeamMembers(mine.UID, operator, list)
+	if err == nil {
+		mine.Members = list
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *TeamInfo) HadMember(member string) bool {
+	for i := 0;i < len(mine.Members);i += 1 {
+		if mine.Members[i] == member {
+			return true
+		}
+	}
+	return false
+}
+
+func (mine *TeamInfo)AppendMember(member string) error {
+	if mine.HadMember(member){
+		return nil
+	}
+	err := nosql.AppendTeamMember(mine.UID, member)
+	if err == nil {
+		mine.Members = append(mine.Members, member)
+	}
+	return err
+}
+
+func (mine *TeamInfo)SubtractMember(member string) error {
+	if !mine.HadMember(member){
+		return nil
+	}
+	err := nosql.SubtractTeamMember(mine.UID, member)
+	if err == nil {
+		for i := 0;i < len(mine.Members);i += 1 {
+			if mine.Members[i] == member {
+				if i == len(mine.Members) - 1 {
+					mine.Members = append(mine.Members[:i])
+				}else{
+					mine.Members = append(mine.Members[:i], mine.Members[i+1:]...)
+				}
+				break
+			}
+		}
+	}
+	return err
+}

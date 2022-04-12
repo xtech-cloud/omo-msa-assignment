@@ -6,7 +6,8 @@ const (
 	*/
 	TableSequence = "sequences"
 
-	TableTask = "tasks"
-	TableAgent = "agents"
-	TableTeam = "teams"
+	TableTask   = "tasks"
+	TableAgent  = "agents"
+	TableTeam   = "teams"
+	TableFamily = "families"
 )

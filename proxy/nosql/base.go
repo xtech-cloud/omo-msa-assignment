@@ -19,10 +19,10 @@ var noSql *mongo.Database
 var dbClient *mongo.Client
 
 type AddressInfo struct {
-	Country string `json:"country" bson:"country"`
+	Country  string `json:"country" bson:"country"`
 	Province string `json:"province" bson:"province"`
-	City string `json:"city" bson:"city"`
-	Zone string `json:"zone" bson:"zone"`
+	City     string `json:"city" bson:"city"`
+	Zone     string `json:"zone" bson:"zone"`
 }
 
 func initMongoDB(ip string, port string, db string) error {

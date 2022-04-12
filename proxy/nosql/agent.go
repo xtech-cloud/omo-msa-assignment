@@ -4,7 +4,6 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"omo.msa.organization/proxy"
 	"time"
 )
 
@@ -16,12 +15,17 @@ type Agent struct {
 	UpdatedTime time.Time          `json:"updatedAt" bson:"updatedAt"`
 	DeleteTime  time.Time          `json:"deleteAt" bson:"deleteAt"`
 
-	Creator  string `json:"creator" bson:"creator"`
-	Operator string `json:"operator" bson:"operator"`
-	Scene    string `json:"scene" bson:"scene"`
-	Remark   string `json:"remark" bson:"remark"`
-	Quotes   []string `json:"quotes" bson::"quotes"`
-	//Displays  []proxy.DisplayInfo `json:"displays" bson:"displays"`
+	Creator  string   `json:"creator" bson:"creator"`
+	Operator string   `json:"operator" bson:"operator"`
+	User     string   `json:"user" bson:"user"`
+	Entity   string   `json:"entity" bson:"entity"`
+	Remark   string   `json:"remark" bson:"remark"`
+	Owner    string   `json:"owner" bson:"owner"`
+	Way      string   `json:"way" bson:"way"`
+	Type     uint8    `json:"type" bson:"type"`
+	Status   uint8    `json:"status" bson:"status"`
+	Regions  []string `json:"regions" bson:"regions"`
+	Tags     []string `json:"tags" bson:"tags"`
 }
 
 func CreateAgent(info *Agent) error {
@@ -55,8 +59,8 @@ func GetAgent(uid string) (*Agent, error) {
 	return model, nil
 }
 
-func GetAgentByID(id uint64) (*Agent, error) {
-	msg := bson.M{"id": id}
+func GetAgentByUser(user string) (*Agent, error) {
+	msg := bson.M{"user": user}
 	result, err := findOneBy(TableAgent, msg)
 	if err != nil {
 		return nil, err
@@ -69,7 +73,7 @@ func GetAgentByID(id uint64) (*Agent, error) {
 	return model, nil
 }
 
-func RemoveAgent(uid,operator string) error {
+func RemoveAgent(uid, operator string) error {
 	_, err := removeOne(TableAgent, uid, operator)
 	return err
 }
@@ -91,8 +95,25 @@ func GetAllAgents() ([]*Agent, error) {
 	return items, nil
 }
 
-func GetAgentsByScene(scene string) ([]*Agent, error) {
-	cursor, err1 := findMany(TableAgent, bson.M{"scene": scene, "deleteAt": new(time.Time)}, 0)
+func GetAgentsByOwner(owner string) ([]*Agent, error) {
+	cursor, err1 := findMany(TableAgent, bson.M{"owner": owner, "deleteAt": new(time.Time)}, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Agent, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Agent)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetAgentsByWay(owner, way string) ([]*Agent, error) {
+	cursor, err1 := findMany(TableAgent, bson.M{"owner": owner,"way": way, "deleteAt": new(time.Time)}, 0)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -114,16 +135,26 @@ func UpdateAgentBase(uid, name, remark, operator string) error {
 	return err
 }
 
-func UpdateAgentDisplays(uid, operator string, list []*proxy.DisplayInfo) error {
-	msg := bson.M{"displays": list, "operator": operator, "updatedAt": time.Now()}
+func UpdateAgentEntity(uid, entity, operator string) error {
+	msg := bson.M{"entity": entity, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableAgent, uid, msg)
 	return err
 }
 
-func UpdateAgentQuotes(uid, operator string, arr []string) error {
-	msg := bson.M{"operator": operator, "quotes": arr, "updatedAt": time.Now()}
+func UpdateAgentStatus(uid, operator string, st uint8) error {
+	msg := bson.M{"status": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableAgent, uid, msg)
 	return err
 }
 
+func UpdateAgentTags(uid, operator string, tags []string) error {
+	msg := bson.M{"tags": tags, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableAgent, uid, msg)
+	return err
+}
 
+func UpdateAgentRegions(uid, operator string, list []string) error {
+	msg := bson.M{"regions": list, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableAgent, uid, msg)
+	return err
+}

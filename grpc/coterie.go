@@ -9,10 +9,10 @@ import (
 	"omo.msa.assignment/cache"
 )
 
-type FamilyService struct{}
+type CoterieService struct{}
 
-func switchFamily(info *cache.FamilyInfo) *pb.FamilyInfo {
-	tmp := new(pb.FamilyInfo)
+func switchCoterie(info *cache.CoterieInfo) *pb.CoterieInfo {
+	tmp := new(pb.CoterieInfo)
 	tmp.Uid = info.UID
 	tmp.Id = info.ID
 	tmp.Created = info.CreateTime.Unix()
@@ -22,16 +22,14 @@ func switchFamily(info *cache.FamilyInfo) *pb.FamilyInfo {
 	tmp.Name = info.Name
 	tmp.Remark = info.Remark
 	tmp.Cover = info.Cover
-	tmp.Location = info.Location
 	tmp.Master = info.Master
-	tmp.Address = info.Address
-	tmp.Region = info.Region
+	tmp.Centre = info.Centre
+	tmp.Meta = info.Meta
+	tmp.Type = uint32(info.Type)
 	tmp.Status = uint32(info.Status)
-	tmp.Location = info.Location
 	tmp.Passwords = info.Passwords
 	tmp.Assistants = info.Assistants
 	tmp.Tags = info.Tags
-	tmp.Agents = info.Agents
 	tmp.Members = make([]*pb.IdentifyInfo, 0, len(info.Members))
 	for _, member := range info.Members {
 		tmp.Members = append(tmp.Members, &pb.IdentifyInfo{User: member.User, Name: member.Name, Remark: member.Remark})
@@ -39,7 +37,7 @@ func switchFamily(info *cache.FamilyInfo) *pb.FamilyInfo {
 	return tmp
 }
 
-func (mine *FamilyService) AddOne(ctx context.Context, in *pb.ReqFamilyAdd, out *pb.ReplyFamilyInfo) error {
+func (mine *CoterieService) AddOne(ctx context.Context, in *pb.ReqCoterieAdd, out *pb.ReplyCoterieInfo) error {
 	path := "family.addOne"
 	inLog(path, in)
 	if len(in.Name) < 1 {
@@ -47,29 +45,27 @@ func (mine *FamilyService) AddOne(ctx context.Context, in *pb.ReqFamilyAdd, out 
 		return nil
 	}
 
-	info, err := cache.Context().CreateFamily(in)
+	info, err := cache.Context().CreateCoterie(in)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Info = switchFamily(info)
+	out.Info = switchCoterie(info)
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *FamilyService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFamilyInfo) error {
+func (mine *CoterieService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyCoterieInfo) error {
 	path := "family.getOne"
 	inLog(path, in)
-	var info *cache.FamilyInfo
+	var info *cache.CoterieInfo
 	var er error
 	if len(in.Uid) > 1 {
-		info,er = cache.Context().GetFamily(in.Uid)
-	}else if in.Flag == "master" {
-		info,er = cache.Context().GetFamilyByMaster(in.User)
-	}else if in.Flag == "child" {
-		info,er = cache.Context().GetFamilyByChild(in.User)
+		info,er = cache.Context().GetCoterie(in.Uid)
+	}else if in.Flag == "centre" {
+		info,er = cache.Context().GetCoterieByCentre(in.User)
 	}else if in.Flag == "creator" {
-		info,er = cache.Context().GetFamilyByCreator(in.User)
+		info,er = cache.Context().GetCoterieByCreator(in.User)
 	}else {
 		er = errors.New("")
 	}
@@ -78,12 +74,12 @@ func (mine *FamilyService) GetOne(ctx context.Context, in *pb.RequestInfo, out *
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	out.Info = switchFamily(info)
+	out.Info = switchCoterie(info)
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *FamilyService) Search(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFamilyList) error {
+func (mine *CoterieService) Search(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyCoterieList) error {
 	path := "family.search"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
@@ -95,30 +91,26 @@ func (mine *FamilyService) Search(ctx context.Context, in *pb.RequestInfo, out *
 	return nil
 }
 
-func (mine *FamilyService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
+func (mine *CoterieService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
 	path := "family.getStatistic"
 	inLog(path, in)
 	if len(in.Key) < 1 {
 		out.Status = outError(path, "the key is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	if in.Key == "region" {
-		list,_ := cache.Context().GetFamiliesByRegion(in.Value)
-		out.Count = uint32(len(list))
-	}
 
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *FamilyService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
+func (mine *CoterieService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
 	path := "family.remove"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	err := cache.Context().RemoveFamily(in.Uid, in.Operator)
+	err := cache.Context().RemoveCoterie(in.Uid, in.Operator)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -128,19 +120,13 @@ func (mine *FamilyService) RemoveOne(ctx context.Context, in *pb.RequestInfo, ou
 	return nil
 }
 
-func (mine *FamilyService) GetListByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyFamilyList) error {
+func (mine *CoterieService) GetListByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyCoterieList) error {
 	path := "family.getListByFilter"
 	inLog(path, in)
-	var list []*cache.FamilyInfo
+	var list []*cache.CoterieInfo
 	var err error
-	if in.Key == "region" {
-		list,err = cache.Context().GetFamiliesByRegion(in.Value)
-	} else if in.Key == "regions" {
-		list,err = cache.Context().GetFamiliesByRegions(in.Values)
-	} else if in.Key == "user" {
-		list,err = cache.Context().GetFamiliesByMember(in.Value)
-	} else if in.Key == "agent" {
-		list,err = cache.Context().GetFamiliesByAgent(in.Value)
+	if in.Key == "user" {
+		list,err = cache.Context().GetCoteriesByMember(in.Value)
 	} else {
 		err = errors.New("the key not defined")
 	}
@@ -148,22 +134,22 @@ func (mine *FamilyService) GetListByFilter(ctx context.Context, in *pb.RequestFi
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.List = make([]*pb.FamilyInfo, 0, len(list))
+	out.List = make([]*pb.CoterieInfo, 0, len(list))
 	for _, value := range list {
-		out.List = append(out.List, switchFamily(value))
+		out.List = append(out.List, switchCoterie(value))
 	}
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }
 
-func (mine *FamilyService) UpdateBase(ctx context.Context, in *pb.ReqFamilyUpdate, out *pb.ReplyInfo) error {
+func (mine *CoterieService) UpdateBase(ctx context.Context, in *pb.ReqCoterieUpdate, out *pb.ReplyInfo) error {
 	path := "family.updateBase"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetFamily(in.Uid)
+	info,er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -178,14 +164,14 @@ func (mine *FamilyService) UpdateBase(ctx context.Context, in *pb.ReqFamilyUpdat
 	return err
 }
 
-func (mine *FamilyService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+func (mine *CoterieService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
 	path := "family.updateByFilter"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetFamily(in.Uid)
+	info,er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -197,11 +183,7 @@ func (mine *FamilyService) UpdateByFilter(ctx context.Context, in *pb.RequestUpd
 		err = info.UpdateMaster(in.Value, in.Operator)
 	}else if in.Key == "sn" {
 		err = info.UpdateMaster(in.Value, in.Operator)
-	}else if in.Key == "agents" {
-		err = info.UpdateAgents(in.Operator, in.Values)
-	}else if in.Key == "children" {
-		err = info.UpdateChildren(in.Operator, in.Values)
-	}else if in.Key == "identify" {
+	} else if in.Key == "identify" {
 		err = info.UpdateMemberIdentify(in.Operator, in.Value, in.Values[0])
 	}
 	if err != nil {
@@ -212,14 +194,14 @@ func (mine *FamilyService) UpdateByFilter(ctx context.Context, in *pb.RequestUpd
 	return err
 }
 
-func (mine *FamilyService) UpdateStatus(ctx context.Context, in *pb.RequestIntFlag, out *pb.ReplyInfo) error {
+func (mine *CoterieService) UpdateStatus(ctx context.Context, in *pb.RequestIntFlag, out *pb.ReplyInfo) error {
 	path := "family.updateStatus"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetFamily(in.Uid)
+	info,er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -234,14 +216,14 @@ func (mine *FamilyService) UpdateStatus(ctx context.Context, in *pb.RequestIntFl
 	return nil
 }
 
-func (mine *FamilyService) AppendMember(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFamilyMembers) error {
+func (mine *CoterieService) AppendMember(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyCoterieMembers) error {
 	path := "family.appendMember"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetFamily(in.Uid)
+	info,er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -260,14 +242,14 @@ func (mine *FamilyService) AppendMember(ctx context.Context, in *pb.RequestInfo,
 	return nil
 }
 
-func (mine *FamilyService) SubtractMember(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFamilyMembers) error {
+func (mine *CoterieService) SubtractMember(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyCoterieMembers) error {
 	path := "family.subtractMember"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetFamily(in.Uid)
+	info,er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -280,7 +262,7 @@ func (mine *FamilyService) SubtractMember(ctx context.Context, in *pb.RequestInf
 	}
 	out.List = make([]*pb.IdentifyInfo, 0, len(info.Members))
 	for _, member := range info.Members {
-		out.List = append(out.List, &pb.IdentifyInfo{User: member.User, Name: in.Name, Remark: member.Remark})
+		out.List = append(out.List, &pb.IdentifyInfo{User: member.User, Name: member.Name, Remark: member.Remark})
 	}
 	out.Status = outLog(path, out)
 	return nil

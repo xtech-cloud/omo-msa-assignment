@@ -1,6 +1,7 @@
 package cache
 
 import (
+	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	"omo.msa.assignment/config"
 	"omo.msa.assignment/proxy/nosql"
 	"reflect"
@@ -65,4 +66,31 @@ func checkPage(page, number uint32, all interface{}) (uint32, uint32, interface{
 
 	list := array.Slice(int(start), int(end))
 	return total, maxPage, list.Interface()
+}
+
+func switchOldFamilyToCoterie() {
+	dbs, _ := nosql.GetAllFamilies()
+	for _, db := range dbs {
+		if len(db.Children) > 0 {
+			in := new(pb.ReqCoterieAdd)
+			in.Centre = db.Children[0]
+			in.Name = db.Name
+			in.Remark = db.Remark
+			in.Type = 0
+			in.Passwords = db.Passwords
+			in.Operator = db.Creator
+			in.Cover = db.Cover
+			in.Master = db.Master
+			in.Members = make([]*pb.IdentifyInfo, 0, len(db.Custodians))
+			for _, custodian := range db.Custodians {
+				if len(custodian.Identifies) > 0 {
+					in.Members = append(in.Members, &pb.IdentifyInfo{User: custodian.User, Name: "", Remark: custodian.Identifies[0].Remark})
+				}else{
+					in.Members = append(in.Members, &pb.IdentifyInfo{User: custodian.User, Name: "", Remark: ""})
+				}
+
+			}
+			cacheCtx.CreateCoterie(in)
+		}
+	}
 }

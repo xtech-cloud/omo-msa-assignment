@@ -78,8 +78,8 @@ func GetFamilyByCreator(creator string) (*Family, error) {
 	return model, nil
 }
 
-func GetFamilyBySN(sn string) (*Family, error) {
-	msg := bson.M{"sn": sn}
+func GetFamilyByMaster(master string) (*Family, error) {
+	msg := bson.M{"master": master, "deleteAt": new(time.Time)}
 	result, err := findOneBy(TableFamily, msg)
 	if err != nil {
 		return nil, err

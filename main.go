@@ -44,6 +44,7 @@ func main() {
 	_ = proto.RegisterAgentServiceHandler(service.Server(), new(grpc.AgentService))
 	_ = proto.RegisterTeamServiceHandler(service.Server(), new(grpc.TeamService))
 	_ = proto.RegisterFamilyServiceHandler(service.Server(), new(grpc.FamilyService))
+	_ = proto.RegisterCoterieServiceHandler(service.Server(), new(grpc.CoterieService))
 
 	app, _ := filepath.Abs(os.Args[0])
 

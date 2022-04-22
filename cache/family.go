@@ -13,7 +13,6 @@ type FamilyInfo struct {
 	Status uint8
 	baseInfo
 	Remark     string
-	SN         string
 	Cover      string
 	Region     string
 	Address    string
@@ -37,7 +36,6 @@ func (mine *cacheContext) CreateFamily(info *pb.ReqFamilyAdd) (*FamilyInfo, erro
 	db.Creator = info.Operator
 	db.Name = info.Name
 	db.Remark = info.Remark
-	db.SN = info.Sn
 	db.Region = info.Region
 	db.Status = 0
 	db.Location = info.Location
@@ -50,7 +48,7 @@ func (mine *cacheContext) CreateFamily(info *pb.ReqFamilyAdd) (*FamilyInfo, erro
 	db.Agents = make([]string, 0, 1)
 	db.Members = make([]proxy.MemberInfo, 0, 2)
 	for _, member := range info.Members {
-		db.Members = append(db.Members, proxy.MemberInfo{User: member.User, Remark: member.Remark})
+		db.Members = append(db.Members, proxy.MemberInfo{User: member.User, Name: member.Name, Remark: member.Remark})
 	}
 
 	err := nosql.CreateFamily(db)
@@ -139,8 +137,8 @@ func (mine *cacheContext) GetFamilyByCreator(user string) (*FamilyInfo, error) {
 	return info, nil
 }
 
-func (mine *cacheContext) GetFamilyBySN(sn string) (*FamilyInfo, error) {
-	db, err := nosql.GetFamilyBySN(sn)
+func (mine *cacheContext) GetFamilyByMaster(user string) (*FamilyInfo, error) {
+	db, err := nosql.GetFamilyByMaster(user)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +173,6 @@ func (mine *FamilyInfo) initInfo(db *nosql.Family) {
 	mine.Passwords = db.Passwords
 	mine.Master = db.Master
 	mine.Remark = db.Remark
-	mine.SN = db.SN
 	mine.Address = db.Address
 	mine.Location = db.Location
 	mine.Region = db.Region
@@ -207,15 +204,6 @@ func (mine *FamilyInfo) UpdateMaster(master, operator string) error {
 	err := nosql.UpdateFamilyMaster(mine.UID, master, operator)
 	if err == nil {
 		mine.Master = master
-		mine.Operator = operator
-	}
-	return err
-}
-
-func (mine *FamilyInfo) UpdateSN(sn, operator string) error {
-	err := nosql.UpdateFamilySN(mine.UID, sn, operator)
-	if err == nil {
-		mine.SN = sn
 		mine.Operator = operator
 	}
 	return err
@@ -266,7 +254,7 @@ func (mine *FamilyInfo) UpdateChildren(operator string, list []string) error {
 	return err
 }
 
-func (mine *FamilyInfo) UpdateMemberIdentify(user, remark string) error {
+func (mine *FamilyInfo) UpdateMemberIdentify(user, name, remark string) error {
 	if !mine.HadMember(user) {
 		return errors.New("not found the member in family")
 	}
@@ -274,7 +262,7 @@ func (mine *FamilyInfo) UpdateMemberIdentify(user, remark string) error {
 	if er != nil {
 		return er
 	}
-	return mine.AppendMember(user, remark)
+	return mine.AppendMember(user, name, remark)
 }
 
 func (mine *FamilyInfo) UpdateAssistants(operator string, list []string) error {
@@ -295,11 +283,11 @@ func (mine *FamilyInfo) HadMember(member string) bool {
 	return false
 }
 
-func (mine *FamilyInfo) AppendMember(user, remark string) error {
+func (mine *FamilyInfo) AppendMember(user, name, remark string) error {
 	if mine.HadMember(user) {
 		return nil
 	}
-	t := proxy.MemberInfo{User: user, Remark: remark}
+	t := proxy.MemberInfo{User: user, Name: name, Remark: remark}
 	err := nosql.AppendFamilyMember(mine.UID, t)
 	if err == nil {
 		mine.Members = append(mine.Members, t)

@@ -10,4 +10,5 @@ const (
 	TableAgent  = "agents"
 	TableTeam   = "teams"
 	TableFamily = "families"
+	TableCoterie = "coteries"
 )

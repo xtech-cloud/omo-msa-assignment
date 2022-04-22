@@ -34,5 +34,6 @@ type IdentifyInfo struct {
 
 type MemberInfo struct {
 	User   string `json:"user" bson:"user"`
+	Name   string `json:"name" bson:"name"`
 	Remark string `json:"remark" bson:"remark"`
 }

@@ -2,14 +2,14 @@ package config
 
 const defaultJson string = `{
 	"service": {
-		"address": ":7079",
+		"address": ":9711",
 		"ttl": 15,
 		"interval": 10
 	},
 	"logger": {
 		"level": "info",
 		"file": "logs/server.log",
-		"std": false
+		"std": true
 	},
 	"database": {
 		"name": "rgsCloud",

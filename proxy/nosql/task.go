@@ -61,8 +61,27 @@ func GetTask(uid string) (*Task, error) {
 	return model, nil
 }
 
-func GetTasksByOwner(uid string) ([]*Task, error) {
-	msg := bson.M{"owner": uid}
+func GetTasksByOwner(uid string, st uint8) ([]*Task, error) {
+	msg := bson.M{"owner": uid, "status":st, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableTask, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTasksByOwner2(uid string) ([]*Task, error) {
+	msg := bson.M{"owner": uid, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableTask, msg, 0)
 	if err1 != nil {
 		return nil, err1
@@ -81,7 +100,7 @@ func GetTasksByOwner(uid string) ([]*Task, error) {
 }
 
 func GetTasksByType(owner string, tp uint8) ([]*Task, error) {
-	msg := bson.M{"owner": owner, "type": tp}
+	msg := bson.M{"owner": owner, "type": tp, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableTask, msg, 0)
 	if err1 != nil {
 		return nil, err1
@@ -99,8 +118,8 @@ func GetTasksByType(owner string, tp uint8) ([]*Task, error) {
 	return items, nil
 }
 
-func GetTasksByAgent(owner, agent string) ([]*Task, error) {
-	msg := bson.M{"owner": owner, "executors": bson.M{"$elemMatch": bson.M{"$eq": agent}}}
+func GetTasksByRegion(region string, st uint8) ([]*Task, error) {
+	msg := bson.M{"regions": bson.M{"$elemMatch": bson.M{"$eq": region}}, "status":st, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableTask, msg, 0)
 	if err1 != nil {
 		return nil, err1
@@ -118,8 +137,84 @@ func GetTasksByAgent(owner, agent string) ([]*Task, error) {
 	return items, nil
 }
 
-func GetTasksByTarget(owner, client string) ([]*Task, error) {
-	msg := bson.M{"owner": owner, "target": client}
+func GetTasksByRegion2(region string) ([]*Task, error) {
+	msg := bson.M{"regions": bson.M{"$elemMatch": bson.M{"$eq": region}}, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableTask, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTasksByAgent(agent string, st uint8) ([]*Task, error) {
+	msg := bson.M{"executors": bson.M{"$elemMatch": bson.M{"$eq": agent}}, "status":st, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableTask, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTasksByAgent2(agent string) ([]*Task, error) {
+	msg := bson.M{"executors": bson.M{"$elemMatch": bson.M{"$eq": agent}}, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableTask, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTasksByTarget(client string, st uint8) ([]*Task, error) {
+	msg := bson.M{"target": client, "status":st, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableTask, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Task, 0, 100)
+	defer cursor.Close(context.Background())
+	for cursor.Next(context.Background()) {
+		var node = new(Task)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTasksByTarget2(client string) ([]*Task, error) {
+	msg := bson.M{"target": client, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableTask, msg, 0)
 	if err1 != nil {
 		return nil, err1
@@ -155,8 +250,8 @@ func GetAllTasks() ([]*Task, error) {
 	return items, nil
 }
 
-func UpdateTaskBase(uid, name, remark, operator string) error {
-	msg := bson.M{"name": name, "remark": remark, "operator": operator, "updatedAt": time.Now()}
+func UpdateTaskBase(uid, name, remark, operator string, assets []string) error {
+	msg := bson.M{"name": name, "remark": remark, "assets":assets, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableTask, uid, msg)
 	return err
 }

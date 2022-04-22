@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
@@ -61,11 +62,20 @@ func (mine *FamilyService) AddOne(ctx context.Context, in *pb.ReqFamilyAdd, out 
 func (mine *FamilyService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFamilyInfo) error {
 	path := "family.getOne"
 	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
-		return nil
+	var info *cache.FamilyInfo
+	var er error
+	if len(in.Uid) > 1 {
+		info,er = cache.Context().GetFamily(in.Uid)
+	}else if in.Flag == "sn" {
+		info,er = cache.Context().GetFamilyBySN(in.Operator)
+	}else if in.Flag == "child" {
+		info,er = cache.Context().GetFamilyByChild(in.Operator)
+	}else if in.Flag == "creator" {
+		info,er = cache.Context().GetFamilyByCreator(in.Operator)
+	}else {
+		er = errors.New("")
 	}
-	info,er := cache.Context().GetFamily(in.Uid)
+
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -94,6 +104,10 @@ func (mine *FamilyService) GetStatistic(ctx context.Context, in *pb.RequestFilte
 		out.Status = outError(path, "the key is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	if in.Key == "region" {
+		list,_ := cache.Context().GetFamiliesByRegion(in.Value)
+		out.Count = uint32(len(list))
+	}
 
 	out.Status = outLog(path, out)
 	return nil
@@ -117,10 +131,29 @@ func (mine *FamilyService) RemoveOne(ctx context.Context, in *pb.RequestInfo, ou
 }
 
 func (mine *FamilyService) GetListByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyFamilyList) error {
-	path := "family.getList"
+	path := "family.getListByFilter"
 	inLog(path, in)
-
-
+	var list []*cache.FamilyInfo
+	var err error
+	if in.Key == "region" {
+		list,err = cache.Context().GetFamiliesByRegion(in.Value)
+	} else if in.Key == "regions" {
+		list,err = cache.Context().GetFamiliesByRegions(in.Values)
+	} else if in.Key == "user" {
+		list,err = cache.Context().GetFamiliesByMember(in.Value)
+	} else if in.Key == "agent" {
+		list,err = cache.Context().GetFamiliesByAgent(in.Value)
+	} else {
+		err = errors.New("the key not defined")
+	}
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+		return nil
+	}
+	out.List = make([]*pb.FamilyInfo, 0, len(list))
+	for _, value := range list {
+		out.List = append(out.List, switchFamily(value))
+	}
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }
@@ -137,7 +170,7 @@ func (mine *FamilyService) UpdateBase(ctx context.Context, in *pb.ReqFamilyUpdat
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.UpdateBase(in.Name, in.Remark, in.Operator)
+	err := info.UpdateBase(in.Name, in.Remark, in.Passwords, in.Operator)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -161,7 +194,17 @@ func (mine *FamilyService) UpdateByFilter(ctx context.Context, in *pb.RequestUpd
 	}
 	var err error
 	if in.Key == "passwords" {
-		err = info.UpdatePasswords(in.Operator, in.Value)
+		err = info.UpdatePasswords(in.Value, in.Operator)
+	}else if in.Key == "master" {
+		err = info.UpdateMaster(in.Value, in.Operator)
+	}else if in.Key == "sn" {
+		err = info.UpdateMaster(in.Value, in.Operator)
+	}else if in.Key == "agents" {
+		err = info.UpdateAgents(in.Operator, in.Values)
+	}else if in.Key == "children" {
+		err = info.UpdateChildren(in.Operator, in.Values)
+	}else if in.Key == "identify" {
+		err = info.UpdateMemberIdentify(in.Operator, in.Value)
 	}
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

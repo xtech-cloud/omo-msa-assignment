@@ -29,7 +29,10 @@ func InitData() error {
 	if nil != err {
 		return err
 	}
-
+	//dbs, _ := nosql.GetAllFamilies()
+	//for _, db := range dbs {
+	//	fmt.Printf(db.Name)
+	//}
 	return nil
 }
 

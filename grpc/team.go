@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
@@ -110,25 +111,27 @@ func (mine *TeamService) GetListByFilter(ctx context.Context, in *pb.RequestFilt
 	path := "team.getListByFilter"
 	inLog(path, in)
 	var list []*cache.TeamInfo
-	if in.Key == "shortname" {
-		list = make([]*cache.TeamInfo, 0, 1)
+	var err error
+	if in.Key == "" {
+		list = cache.Context().GetTeamsByOwner(in.Owner)
 	} else if in.Key == "type" {
 
-	} else if in.Key == "parent" {
+	} else if in.Key == "user" {
+		list = cache.Context().GetTeamsByUser(in.Value)
 	} else if in.Key == "array" {
 	} else {
-		list = make([]*cache.TeamInfo, 0, 1)
+		err = errors.New("the key not defined")
 	}
-
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+		return nil
+	}
 	out.List = make([]*pb.TeamInfo, 0, len(list))
 	for _, value := range list {
 		out.List = append(out.List, switchTeam(value))
 	}
 
-	out.Status = &pb.ReplyStatus{
-		Code:  0,
-		Error: "",
-	}
+	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }
 
@@ -176,6 +179,8 @@ func (mine *TeamService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdat
 	var err error
 	if in.Key == "master" {
 		err = info.UpdateMaster(in.Value, in.Operator)
+	}else if in.Key == "assistants" {
+		err = info.UpdateAssistants(in.Operator, in.Values)
 	}
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
@@ -206,7 +211,7 @@ func (mine *TeamService) UpdateStatus(ctx context.Context, in *pb.RequestIntFlag
 	return nil
 }
 
-func (mine *TeamService) AppendMember(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyList) error {
+func (mine *TeamService) AppendMember(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
 	path := "team.appendMember"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
@@ -219,7 +224,7 @@ func (mine *TeamService) AppendMember(ctx context.Context, in *pb.RequestInfo, o
 		return nil
 	}
 
-	err := info.AppendMember(in.Flag)
+	err := info.AppendMembers(in.List)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -230,7 +235,7 @@ func (mine *TeamService) AppendMember(ctx context.Context, in *pb.RequestInfo, o
 	return nil
 }
 
-func (mine *TeamService) SubtractMember(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyList) error {
+func (mine *TeamService) SubtractMember(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
 	path := "Team.subtractMember"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
@@ -243,7 +248,7 @@ func (mine *TeamService) SubtractMember(ctx context.Context, in *pb.RequestInfo,
 		return nil
 	}
 
-	err := info.SubtractMember(in.Flag)
+	err := info.SubtractMembers(in.List)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil

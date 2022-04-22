@@ -51,11 +51,6 @@ func GetFamilyNextID() uint64 {
 	return num
 }
 
-func GetInviterNextID() uint64 {
-	num, _ := getSequenceNext("family_invitee")
-	return num
-}
-
 func GetFamily(uid string) (*Family, error) {
 	result, err := findOne(TableFamily, uid)
 	if err != nil {
@@ -116,7 +111,45 @@ func GetAllFamilies() ([]*Family, error) {
 }
 
 func GetFamiliesByMember(user string) ([]*Family, error) {
-	msg := bson.M{"members": bson.M{"$elemMatch": bson.M{"user": user}}}
+	msg := bson.M{"members": bson.M{"$elemMatch": bson.M{"user": user}}, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableFamily, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	defer cursor.Close(context.Background())
+	var items = make([]*Family, 0, 10)
+	for cursor.Next(context.Background()) {
+		var node = new(Family)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetFamiliesByRegion(region string) ([]*Family, error) {
+	msg := bson.M{"region": region, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableFamily, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	defer cursor.Close(context.Background())
+	var items = make([]*Family, 0, 10)
+	for cursor.Next(context.Background()) {
+		var node = new(Family)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetFamiliesByOwner(owner string) ([]*Family, error) {
+	msg := bson.M{"owner": owner, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableFamily, msg, 0)
 	if err1 != nil {
 		return nil, err1
@@ -148,8 +181,27 @@ func GetFamilyByChild(entity string) (*Family, error) {
 	return model, nil
 }
 
-func UpdateFamilyBase(uid, name, remark, operator string) error {
-	msg := bson.M{"name": name, "remark": remark, "operator": operator, "updatedAt": time.Now()}
+func GetFamiliesByAgent(agent string) ([]*Family, error) {
+	msg := bson.M{"agents": bson.M{"$elemMatch": bson.M{"$eq": agent}}, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableFamily, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	defer cursor.Close(context.Background())
+	var items = make([]*Family, 0, 10)
+	for cursor.Next(context.Background()) {
+		var node = new(Family)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func UpdateFamilyBase(uid, name, remark, psw, operator string) error {
+	msg := bson.M{"name": name, "remark": remark,  "passwords": psw, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFamily, uid, msg)
 	return err
 }

@@ -37,7 +37,7 @@ dist:
 
 .PHONY: docker
 docker:
-	docker build . -t omo.msa.organization:latest
+	docker build . -t omo.msa.assignment:latest
 
 .PHONY: updev
 updev:

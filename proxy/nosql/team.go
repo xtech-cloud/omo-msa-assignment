@@ -110,11 +110,30 @@ func GetAllTeams() ([]*Team, error) {
 }
 
 func GetTeamsByOwner(owner string) ([]*Team, error) {
-	cursor, err1 := findMany(TableTeam, bson.M{"scene": owner, "deleteAt": new(time.Time)}, 0)
+	cursor, err1 := findMany(TableTeam, bson.M{"owner": owner, "deleteAt": new(time.Time)}, 0)
 	if err1 != nil {
 		return nil, err1
 	}
 	var items = make([]*Team, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Team)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetTeamsByMember(user string) ([]*Team, error) {
+	msg := bson.M{"members": bson.M{"$elemMatch": bson.M{"$eq": user}}}
+	cursor, err1 := findMany(TableTeam, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	defer cursor.Close(context.Background())
+	var items = make([]*Team, 0, 10)
 	for cursor.Next(context.Background()) {
 		var node = new(Team)
 		if err := cursor.Decode(node); err != nil {

@@ -31,7 +31,7 @@ func main() {
 	}
 	// New Service
 	service := micro.NewService(
-		micro.Name("omo.msa.organization"),
+		micro.Name("omo.msa.assignment"),
 		micro.Version(BuildVersion),
 		micro.RegisterTTL(time.Second*time.Duration(config.Schema.Service.TTL)),
 		micro.RegisterInterval(time.Second*time.Duration(config.Schema.Service.Interval)),

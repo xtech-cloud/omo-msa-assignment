@@ -33,6 +33,7 @@ func (mine *cacheContext) CreateTeam(info *pb.ReqTeamAdd) (*TeamInfo, error) {
 	db.Status = uint8(TaskStatusIdle)
 	db.Owner = info.Owner
 	db.Master = ""
+	db.Region = info.Region
 	db.Tags = make([]string, 0, 1)
 	db.Members = make([]string, 0, 1)
 	db.Assistants = make([]string, 0, 1)
@@ -55,9 +56,22 @@ func (mine *cacheContext) GetTeam(uid string) (*TeamInfo,error) {
 	return nil,err
 }
 
-func (mine *cacheContext) GetTeamByOwner(scene string) []*TeamInfo {
+func (mine *cacheContext) GetTeamsByOwner(scene string) []*TeamInfo {
 	list := make([]*TeamInfo, 0, 10)
 	dbs,err := nosql.GetTeamsByOwner(scene)
+	if err == nil {
+		for _, db := range dbs {
+			info := new(TeamInfo)
+			info.initInfo(db)
+			list = append(list, info)
+		}
+	}
+	return list
+}
+
+func (mine *cacheContext) GetTeamsByUser(user string) []*TeamInfo {
+	list := make([]*TeamInfo, 0, 10)
+	dbs,err := nosql.GetTeamsByMember(user)
 	if err == nil {
 		for _, db := range dbs {
 			info := new(TeamInfo)
@@ -181,6 +195,16 @@ func (mine *TeamInfo) HadMember(member string) bool {
 	return false
 }
 
+func (mine *TeamInfo)AppendMembers(list []string) error {
+	for _, s := range list {
+		err := mine.AppendMember(s)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (mine *TeamInfo)AppendMember(member string) error {
 	if mine.HadMember(member){
 		return nil
@@ -190,6 +214,16 @@ func (mine *TeamInfo)AppendMember(member string) error {
 		mine.Members = append(mine.Members, member)
 	}
 	return err
+}
+
+func (mine *TeamInfo)SubtractMembers(members []string) error {
+	for _, member := range members {
+		err := mine.SubtractMember(member)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (mine *TeamInfo)SubtractMember(member string) error {

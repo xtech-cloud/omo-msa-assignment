@@ -112,6 +112,24 @@ func GetAgentsByOwner(owner string) ([]*Agent, error) {
 	return items, nil
 }
 
+func GetAgentsByRegion(region string) ([]*Agent, error) {
+	msg := bson.M{"regions": bson.M{"$elemMatch": bson.M{"$eq": region}}, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableAgent, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Agent, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Agent)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetAgentsByWay(owner, way string) ([]*Agent, error) {
 	cursor, err1 := findMany(TableAgent, bson.M{"owner": owner,"way": way, "deleteAt": new(time.Time)}, 0)
 	if err1 != nil {

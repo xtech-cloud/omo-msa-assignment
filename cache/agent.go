@@ -7,6 +7,18 @@ import (
 	"time"
 )
 
+const (
+	AgentStatusIdle  uint8 = 0
+	AgentStatusCheck  uint8 = 1
+	AgentStatusFroze uint8 = 99
+)
+
+const (
+	AgentTypeUnknown uint8 = 0
+	AgentTypeSpec  uint8 = 1
+	AgentTypeFree  uint8 = 2
+)
+
 type AgentInfo struct {
 	Type   uint8
 	Status uint8
@@ -31,13 +43,21 @@ func (mine *cacheContext) CreateAgent(info *pb.ReqAgentAdd) (*AgentInfo, error) 
 	db.Name = info.Name
 	db.Remark = info.Remark
 
-	//db.Type = info.t
-	db.Status = uint8(TaskStatusIdle)
+	if uint8(info.Type) == AgentTypeSpec {
+		db.Type = AgentTypeSpec
+		db.Status = AgentStatusIdle
+	}else if uint8(info.Type) == AgentTypeFree {
+		db.Type = AgentTypeFree
+		db.Status = AgentStatusCheck
+	}else{
+		db.Type = AgentTypeUnknown
+		db.Status = AgentStatusCheck
+	}
 	db.Owner = info.Owner
 	db.User = info.User
 	db.Entity = info.Entity
 	db.Way = info.Way
-	db.Regions = make([]string, 0, 1)
+	db.Regions = info.Regions
 	db.Tags = make([]string, 0, 1)
 	err := nosql.CreateAgent(db)
 	if err == nil {
@@ -82,6 +102,20 @@ func (mine *cacheContext) GetAgentsByOwner(uid string) []*AgentInfo {
 	return list
 }
 
+func (mine *cacheContext) GetAgentsByRegion(region string) []*AgentInfo {
+	list := make([]*AgentInfo, 0, 5)
+	dbs, err := nosql.GetAgentsByRegion(region)
+	if err != nil {
+		return list
+	}
+	for _, db := range dbs {
+		info := new(AgentInfo)
+		info.initInfo(db)
+		list = append(list, info)
+	}
+	return list
+}
+
 func (mine *cacheContext) GetAgentsByWay(owner, way string) []*AgentInfo {
 	list := make([]*AgentInfo, 0, 5)
 	dbs, err := nosql.GetAgentsByWay(owner, way)
@@ -92,6 +126,19 @@ func (mine *cacheContext) GetAgentsByWay(owner, way string) []*AgentInfo {
 		info := new(AgentInfo)
 		info.initInfo(db)
 		list = append(list, info)
+	}
+	return list
+}
+
+func (mine *cacheContext) GetAgentsByArray(array []string) []*AgentInfo {
+	list := make([]*AgentInfo, 0, len(array))
+	for _, uid := range array {
+		db, err := nosql.GetAgentByUser(uid)
+		if err == nil {
+			info := new(AgentInfo)
+			info.initInfo(db)
+			list = append(list, info)
+		}
 	}
 	return list
 }

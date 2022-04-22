@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
@@ -50,11 +51,15 @@ func (mine *AgentService) AddOne(ctx context.Context, in *pb.ReqAgentAdd, out *p
 func (mine *AgentService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyAgentOne) error {
 	path := "agent.getOne"
 	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
-		return nil
+
+	var info *cache.AgentInfo
+	var err error
+	if in.Flag == "user" {
+		info,err = cache.Context().GetAgentByUser(in.Operator)
+	}else{
+		info,err = cache.Context().GetAgent(in.Uid)
 	}
-	info,err := cache.Context().GetAgent(in.Uid)
+
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -83,6 +88,10 @@ func (mine *AgentService) GetStatistic(ctx context.Context, in *pb.RequestFilter
 		out.Status = outError(path, "the user is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	if in.Key == "region" {
+		list := cache.Context().GetAgentsByRegion(in.Value)
+		out.Count = uint32(len(list))
+	}
 
 	out.Status = outLog(path, out)
 	return nil
@@ -109,12 +118,21 @@ func (mine *AgentService) GetListByFilter(ctx context.Context, in *pb.RequestFil
 	path := "agent.getListByFilter"
 	inLog(path, in)
 	var list []*cache.AgentInfo
+	var err error
 	if in.Key == "" {
 		list = cache.Context().GetAgentsByOwner(in.Owner)
 	} else if in.Key == "way" {
 		list = cache.Context().GetAgentsByWay(in.Owner, in.Value)
+	} else if in.Key == "array" {
+		list = cache.Context().GetAgentsByArray(in.Values)
+	} else if in.Key == "region" {
+		list = cache.Context().GetAgentsByRegion(in.Value)
 	} else {
-		list = make([]*cache.AgentInfo, 0, 1)
+		err = errors.New("the key not defined")
+	}
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+		return nil
 	}
 
 	out.List = make([]*pb.AgentInfo, 0, len(list))

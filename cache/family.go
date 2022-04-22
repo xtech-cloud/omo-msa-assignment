@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"errors"
 	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.assignment/proxy"
@@ -42,11 +43,16 @@ func (mine *cacheContext) CreateFamily(info *pb.ReqFamilyAdd) (*FamilyInfo, erro
 	db.Location = info.Location
 	db.Address = info.Address
 	db.Passwords = info.Passwords
+	db.Master = info.Master
 	db.Assistants = make([]string, 0, 1)
 	db.Children = make([]string, 0, 1)
 	db.Tags = make([]string, 0, 1)
 	db.Agents = make([]string, 0, 1)
-	db.Members = make([]proxy.MemberInfo, 0, 1)
+	db.Members = make([]proxy.MemberInfo, 0, 2)
+	for _, member := range info.Members {
+		db.Members = append(db.Members, proxy.MemberInfo{User: member.User, Remark: member.Remark})
+	}
+
 	err := nosql.CreateFamily(db)
 	if err == nil {
 		tmp := new(FamilyInfo)
@@ -66,7 +72,7 @@ func (mine *cacheContext) GetFamily(uid string) (*FamilyInfo, error) {
 	return info, nil
 }
 
-func (mine *cacheContext) GetFamilyByMember(uid string) ([]*FamilyInfo, error) {
+func (mine *cacheContext) GetFamiliesByMember(uid string) ([]*FamilyInfo, error) {
 	dbs, err := nosql.GetFamiliesByMember(uid)
 	if err != nil {
 		return make([]*FamilyInfo, 0, 1), err
@@ -76,6 +82,48 @@ func (mine *cacheContext) GetFamilyByMember(uid string) ([]*FamilyInfo, error) {
 		info := new(FamilyInfo)
 		info.initInfo(db)
 		list = append(list, info)
+	}
+
+	return list, nil
+}
+
+func (mine *cacheContext) GetFamiliesByAgent(uid string) ([]*FamilyInfo, error) {
+	dbs, err := nosql.GetFamiliesByAgent(uid)
+	if err != nil {
+		return make([]*FamilyInfo, 0, 1), err
+	}
+	list := make([]*FamilyInfo, 0, len(dbs))
+	for _, db := range dbs {
+		info := new(FamilyInfo)
+		info.initInfo(db)
+		list = append(list, info)
+	}
+
+	return list, nil
+}
+
+func (mine *cacheContext) GetFamiliesByRegion(region string) ([]*FamilyInfo, error) {
+	dbs, err := nosql.GetFamiliesByRegion(region)
+	if err != nil {
+		return make([]*FamilyInfo, 0, 1), err
+	}
+	list := make([]*FamilyInfo, 0, len(dbs))
+	for _, db := range dbs {
+		info := new(FamilyInfo)
+		info.initInfo(db)
+		list = append(list, info)
+	}
+
+	return list, nil
+}
+
+func (mine *cacheContext) GetFamiliesByRegions(regions []string) ([]*FamilyInfo, error) {
+	list := make([]*FamilyInfo, 0, 100)
+	for _, region := range regions {
+		array,_ := mine.GetFamiliesByRegion(region)
+		for _, info := range array {
+			list = append(list, info)
+		}
 	}
 
 	return list, nil
@@ -139,14 +187,14 @@ func (mine *FamilyInfo) initInfo(db *nosql.Family) {
 	mine.Tags = db.Tags
 }
 
-func (mine *FamilyInfo) UpdateBase(name, remark, operator string) error {
+func (mine *FamilyInfo) UpdateBase(name, remark, psw, operator string) error {
 	if len(name) < 1 {
 		name = mine.Name
 	}
 	if len(remark) < 1 {
 		remark = mine.Remark
 	}
-	err := nosql.UpdateFamilyBase(mine.UID, name, remark, operator)
+	err := nosql.UpdateFamilyBase(mine.UID, name, remark, psw, operator)
 	if err == nil {
 		mine.Name = name
 		mine.Remark = remark
@@ -164,6 +212,15 @@ func (mine *FamilyInfo) UpdateMaster(master, operator string) error {
 	return err
 }
 
+func (mine *FamilyInfo) UpdateSN(sn, operator string) error {
+	err := nosql.UpdateFamilySN(mine.UID, sn, operator)
+	if err == nil {
+		mine.SN = sn
+		mine.Operator = operator
+	}
+	return err
+}
+
 func (mine *FamilyInfo) UpdateStatus(operator string, st uint8) error {
 	err := nosql.UpdateFamilyStatus(mine.UID, operator, st)
 	if err == nil {
@@ -173,7 +230,7 @@ func (mine *FamilyInfo) UpdateStatus(operator string, st uint8) error {
 	return err
 }
 
-func (mine *FamilyInfo) UpdatePasswords(operator, psw string) error {
+func (mine *FamilyInfo) UpdatePasswords(psw, operator  string) error {
 	err := nosql.UpdateFamilyPasswords(mine.UID, operator, psw)
 	if err == nil {
 		mine.Passwords = psw
@@ -207,6 +264,17 @@ func (mine *FamilyInfo) UpdateChildren(operator string, list []string) error {
 		mine.Operator = operator
 	}
 	return err
+}
+
+func (mine *FamilyInfo) UpdateMemberIdentify(user, remark string) error {
+	if !mine.HadMember(user) {
+		return errors.New("not found the member in family")
+	}
+	er := mine.SubtractMember(user)
+	if er != nil {
+		return er
+	}
+	return mine.AppendMember(user, remark)
 }
 
 func (mine *FamilyInfo) UpdateAssistants(operator string, list []string) error {

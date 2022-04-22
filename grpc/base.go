@@ -5,6 +5,8 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
+	"strconv"
+	"strings"
 )
 
 func inLog(name, data interface{}) {
@@ -40,4 +42,27 @@ func outLog(name, data interface{}) *pb.ReplyStatus {
 		Error: "",
 	}
 	return tmp
+}
+
+func parseString(src string, sep string) (string, int) {
+	arr := strings.Split(src, sep)
+	if len(arr) < 2 {
+		return "", -1
+	}
+	st,er := strconv.ParseInt(arr[1], 10, 32)
+	if er != nil {
+		return "", -1
+	}
+	return arr[0], int(st)
+}
+
+func parseStringToInt(src string) int {
+	if src == "" {
+		return -1
+	}
+	st,er := strconv.ParseInt(src, 10, 32)
+	if er != nil {
+		return -1
+	}
+	return int(st)
 }

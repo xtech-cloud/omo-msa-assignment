@@ -55,6 +55,18 @@ func (mine *cacheContext) CreateTask(info *pb.ReqTaskAdd) (*TaskInfo, error) {
 	db.Tags = info.Tags
 	db.Assets = info.Assets
 	db.Records = make([]proxy.RecordInfo, 0, 1)
+	if db.Regions == nil {
+		db.Regions = make([]string, 0, 1)
+	}
+	if db.PreTasks == nil {
+		db.PreTasks = make([]string, 0, 1)
+	}
+	if db.Tags == nil {
+		db.Tags = make([]string, 0, 1)
+	}
+	if db.Assets == nil {
+		db.Assets = make([]string, 0, 1)
+	}
 	err := nosql.CreateTask(db)
 	if err == nil {
 		tmp := new(TaskInfo)
@@ -77,11 +89,17 @@ func (mine *cacheContext) GetTask(uid string) (*TaskInfo,error) {
 	return nil,err
 }
 
-func (mine *cacheContext) GetTasksByOwner(parent string, page, number uint32) (uint32, uint32, []*TaskInfo) {
+func (mine *cacheContext) GetTasksByOwner(parent string, st int, page, number uint32) (uint32, uint32, []*TaskInfo) {
 	if number < 1 {
 		number = 10
 	}
-	dbs, err := nosql.GetTasksByOwner(parent)
+	var dbs []*nosql.Task
+	var err error
+	if st < 0 {
+		dbs, err = nosql.GetTasksByOwner2(parent)
+	}else{
+		dbs, err = nosql.GetTasksByOwner(parent, uint8(st))
+	}
 	if err != nil {
 		return 0, 0, make([]*TaskInfo, 0, 1)
 	}
@@ -109,24 +127,31 @@ func (mine *cacheContext) GetTasksByType(owner string, tp uint8) []*TaskInfo {
 	return all
 }
 
-func (mine *cacheContext) GetTasksByAgent(owner, agent string) []*TaskInfo {
-	dbs, err := nosql.GetTasksByAgent(owner, agent)
-	if err != nil {
-		return make([]*TaskInfo, 0, 1)
-	}
-	all := make([]*TaskInfo, 0, len(dbs))
-	for _, item := range dbs {
-		info := new(TaskInfo)
-		info.initInfo(item)
-		all = append(all, info)
+func (mine *cacheContext) GetTasksByRegions(regions []string, st int) []*TaskInfo {
+	all := make([]*TaskInfo, 0, len(regions)*100)
+	for _, region := range regions {
+		list, err := mine.GetTasksByRegion(region, st)
+		if err == nil {
+			all = append(all, list...)
+		}
 	}
 	return all
 }
 
-func (mine *cacheContext) GetTasksByTarget(owner, agent string) []*TaskInfo {
-	dbs, err := nosql.GetTasksByTarget(owner, agent)
+func (mine *cacheContext) GetTasksByRegion(region string, st int) ([]*TaskInfo,error) {
+	if region == "" {
+		return nil, errors.New("the region is empty")
+	}
+	var dbs []*nosql.Task
+	var err error
+	if st < int(TaskStatusIdle) {
+		dbs, err = nosql.GetTasksByRegion2(region)
+	}else{
+		dbs, err = nosql.GetTasksByRegion(region, uint8(st))
+	}
+
 	if err != nil {
-		return make([]*TaskInfo, 0, 1)
+		return nil, err
 	}
 	all := make([]*TaskInfo, 0, len(dbs))
 	for _, item := range dbs {
@@ -134,7 +159,55 @@ func (mine *cacheContext) GetTasksByTarget(owner, agent string) []*TaskInfo {
 		info.initInfo(item)
 		all = append(all, info)
 	}
-	return all
+	return all,nil
+}
+
+func (mine *cacheContext) GetTasksByAgent(agent string, st int) ([]*TaskInfo,error) {
+	if agent == "" {
+		return nil, errors.New("the agent is empty")
+	}
+	var dbs []*nosql.Task
+	var err error
+	if st < int(TaskStatusIdle) {
+		dbs, err = nosql.GetTasksByAgent2(agent)
+	}else{
+		dbs, err = nosql.GetTasksByAgent(agent, uint8(st))
+	}
+
+	if err != nil {
+		return nil,err
+	}
+	all := make([]*TaskInfo, 0, len(dbs))
+	for _, item := range dbs {
+		info := new(TaskInfo)
+		info.initInfo(item)
+		all = append(all, info)
+	}
+	return all,nil
+}
+
+func (mine *cacheContext) GetTasksByTarget(target string, st int) ([]*TaskInfo,error) {
+	if target == "" {
+		return nil, errors.New("the target is empty")
+	}
+	var dbs []*nosql.Task
+	var err error
+	if st < int(TaskStatusIdle) {
+		dbs, err = nosql.GetTasksByTarget2(target)
+	}else{
+		dbs, err = nosql.GetTasksByTarget(target, uint8(st))
+	}
+
+	if err != nil {
+		return nil,err
+	}
+	all := make([]*TaskInfo, 0, len(dbs))
+	for _, item := range dbs {
+		info := new(TaskInfo)
+		info.initInfo(item)
+		all = append(all, info)
+	}
+	return all,nil
 }
 
 func RemoveTask(uid, operator string) error {
@@ -161,6 +234,7 @@ func (mine *TaskInfo) initInfo(db *nosql.Task) {
 	mine.Way = db.Way
 	mine.Duration = db.Duration
 
+	mine.Regions = db.Regions
 	mine.Executors = db.Executors
 	mine.PreTasks = db.PreTasks
 	mine.Tags = db.Tags
@@ -168,18 +242,19 @@ func (mine *TaskInfo) initInfo(db *nosql.Task) {
 	mine.Records = db.Records
 }
 
-func (mine *TaskInfo) UpdateBase(name, remark, operator string) error {
+func (mine *TaskInfo) UpdateBase(name, remark, operator string, assets []string) error {
 	if len(name) < 1 {
 		name = mine.Name
 	}
 	if len(remark) < 1 {
 		remark = mine.Remark
 	}
-	err := nosql.UpdateTaskBase(mine.UID, name, remark, operator)
+	err := nosql.UpdateTaskBase(mine.UID, name, remark, operator, assets)
 	if err == nil {
 		mine.Name = name
 		mine.Remark = remark
 		mine.Operator = operator
+		mine.Assets = assets
 	}
 	return err
 }
@@ -274,19 +349,30 @@ func (mine *TaskInfo) SubtractExecutor(member string) error {
 }
 
 func (mine *TaskInfo)AddRecord(tmp *pb.ReqTaskRecord) error {
+	st := TaskStatus(tmp.Status)
+	var err error
+	if mine.Status != st {
+		err = mine.UpdateStatus(st, tmp.Creator)
+		if err != nil {
+			return err
+		}
+	}
 	info := proxy.RecordInfo{
 		Creator: tmp.Creator,
 		CreatedTime: time.Now(),
 		Name: tmp.Name,
 		Remark: tmp.Remark,
 		Executor: tmp.Executor,
-		Status: uint8(mine.Status),
+		Status: uint8(tmp.Status),
 		Tags: tmp.Tags,
 		Assets: tmp.Assets,
 	}
-	err := nosql.AppendTaskRecord(mine.UID, info)
+	err = nosql.AppendTaskRecord(mine.UID, info)
 	if err == nil {
 		mine.Records = append(mine.Records, info)
+		arr := make([]string, 0, 1)
+		arr = append(arr, tmp.Executor)
+		_ = mine.UpdateExecutors(tmp.Creator, arr)
 	}
 	return err
 }

@@ -82,7 +82,7 @@ func (mine *AgentService) Search(ctx context.Context, in *pb.RequestInfo, out *p
 }
 
 func (mine *AgentService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
-	path := "Agent.getStatistic"
+	path := "agent.getStatistic"
 	inLog(path, in)
 	if len(in.Key) < 1 {
 		out.Status = outError(path, "the user is empty ", pbstatus.ResultStatus_Empty)
@@ -185,6 +185,8 @@ func (mine *AgentService) UpdateByFilter(ctx context.Context, in *pb.RequestUpda
 		err = info.UpdateTags(in.Operator, in.Values)
 	}else if in.Key == "regions" {
 		err = info.UpdateRegions(in.Operator, in.Values)
+	}else if in.Key == "attaches" {
+		err = info.UpdateAttaches(in.Operator, in.Values)
 	}
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

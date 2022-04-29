@@ -2,6 +2,7 @@ package nosql
 
 import (
 	"context"
+	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
@@ -20,10 +21,11 @@ type Agent struct {
 	User     string   `json:"user" bson:"user"`
 	Entity   string   `json:"entity" bson:"entity"`
 	Remark   string   `json:"remark" bson:"remark"`
-	Owner    string   `json:"owner" bson:"owner"`
+	Owner    string   `json:"owner" bson:"owner"` // 注册地，创建该数据的场景
 	Way      string   `json:"way" bson:"way"`
 	Type     uint8    `json:"type" bson:"type"`
 	Status   uint8    `json:"status" bson:"status"`
+	Attaches  []string `json:"attaches" bson:"attaches"` //关联的场景
 	Regions  []string `json:"regions" bson:"regions"`
 	Tags     []string `json:"tags" bson:"tags"`
 }
@@ -112,6 +114,24 @@ func GetAgentsByOwner(owner string) ([]*Agent, error) {
 	return items, nil
 }
 
+func GetAgentsByAttach(scene string) ([]*Agent, error) {
+	msg := bson.M{"attaches": bson.M{"$elemMatch": bson.M{"$eq": scene}}, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableAgent, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Agent, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Agent)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetAgentsByRegion(region string) ([]*Agent, error) {
 	msg := bson.M{"regions": bson.M{"$elemMatch": bson.M{"$eq": region}}, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableAgent, msg, 0)
@@ -174,5 +194,29 @@ func UpdateAgentTags(uid, operator string, tags []string) error {
 func UpdateAgentRegions(uid, operator string, list []string) error {
 	msg := bson.M{"regions": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableAgent, uid, msg)
+	return err
+}
+
+func UpdateAgentAttaches(uid, operator string, list []string) error {
+	msg := bson.M{"attaches": list, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableAgent, uid, msg)
+	return err
+}
+
+func AppendAgentAttach(uid, scene string) error {
+	if len(scene) < 1 {
+		return errors.New("the attach uid is empty")
+	}
+	msg := bson.M{"attaches": scene}
+	_, err := appendElement(TableAgent, uid, msg)
+	return err
+}
+
+func SubtractAgentAttach(uid, scene string) error {
+	if len(scene) < 1 {
+		return errors.New("the member uid is empty")
+	}
+	msg := bson.M{"attaches": scene}
+	_, err := removeElement(TableAgent, uid, msg)
 	return err
 }

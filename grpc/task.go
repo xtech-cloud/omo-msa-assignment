@@ -91,7 +91,7 @@ func (mine *TaskService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb
 }
 
 func (mine *TaskService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
-	path := "Task.remove"
+	path := "task.remove"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
@@ -160,7 +160,7 @@ func (mine *TaskService) GetListByFilter(ctx context.Context, in *pb.RequestFilt
 }
 
 func (mine *TaskService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
-	path := "Task.getStatistic"
+	path := "task.getStatistic"
 	inLog(path, in)
 
 	out.Status = outLog(path, out)
@@ -168,7 +168,7 @@ func (mine *TaskService) GetStatistic(ctx context.Context, in *pb.RequestFilter,
 }
 
 func (mine *TaskService) UpdateBase(ctx context.Context, in *pb.ReqTaskUpdate, out *pb.ReplyInfo) error {
-	path := "Task.updateBase"
+	path := "task.updateBase"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)

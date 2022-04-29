@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+const (
+	FamilyIdle = 0
+	FamilyFroze = 99
+)
+
 type FamilyInfo struct {
 	Status uint8
 	baseInfo

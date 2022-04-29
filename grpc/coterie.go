@@ -38,7 +38,7 @@ func switchCoterie(info *cache.CoterieInfo) *pb.CoterieInfo {
 }
 
 func (mine *CoterieService) AddOne(ctx context.Context, in *pb.ReqCoterieAdd, out *pb.ReplyCoterieInfo) error {
-	path := "family.addOne"
+	path := "coterie.addOne"
 	inLog(path, in)
 	if len(in.Name) < 1 {
 		out.Status = outError(path, "the name is empty ", pbstatus.ResultStatus_Empty)
@@ -56,7 +56,7 @@ func (mine *CoterieService) AddOne(ctx context.Context, in *pb.ReqCoterieAdd, ou
 }
 
 func (mine *CoterieService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyCoterieInfo) error {
-	path := "family.getOne"
+	path := "coterie.getOne"
 	inLog(path, in)
 	var info *cache.CoterieInfo
 	var er error
@@ -80,7 +80,7 @@ func (mine *CoterieService) GetOne(ctx context.Context, in *pb.RequestInfo, out 
 }
 
 func (mine *CoterieService) Search(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyCoterieList) error {
-	path := "family.search"
+	path := "coterie.search"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
@@ -92,7 +92,7 @@ func (mine *CoterieService) Search(ctx context.Context, in *pb.RequestInfo, out 
 }
 
 func (mine *CoterieService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
-	path := "family.getStatistic"
+	path := "coterie.getStatistic"
 	inLog(path, in)
 	if len(in.Key) < 1 {
 		out.Status = outError(path, "the key is empty ", pbstatus.ResultStatus_Empty)
@@ -104,7 +104,7 @@ func (mine *CoterieService) GetStatistic(ctx context.Context, in *pb.RequestFilt
 }
 
 func (mine *CoterieService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
-	path := "family.remove"
+	path := "coterie.remove"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
@@ -121,13 +121,15 @@ func (mine *CoterieService) RemoveOne(ctx context.Context, in *pb.RequestInfo, o
 }
 
 func (mine *CoterieService) GetListByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyCoterieList) error {
-	path := "family.getListByFilter"
+	path := "coterie.getListByFilter"
 	inLog(path, in)
 	var list []*cache.CoterieInfo
 	var err error
 	if in.Key == "user" {
 		list,err = cache.Context().GetCoteriesByMember(in.Value)
-	} else {
+	}else if in.Key == "member" {
+		list,err = cache.Context().GetCoteriesByMember(in.Value)
+	}else {
 		err = errors.New("the key not defined")
 	}
 	if err != nil {
@@ -143,7 +145,7 @@ func (mine *CoterieService) GetListByFilter(ctx context.Context, in *pb.RequestF
 }
 
 func (mine *CoterieService) UpdateBase(ctx context.Context, in *pb.ReqCoterieUpdate, out *pb.ReplyInfo) error {
-	path := "family.updateBase"
+	path := "coterie.updateBase"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
@@ -165,7 +167,7 @@ func (mine *CoterieService) UpdateBase(ctx context.Context, in *pb.ReqCoterieUpd
 }
 
 func (mine *CoterieService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
-	path := "family.updateByFilter"
+	path := "coterie.updateByFilter"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
@@ -195,7 +197,7 @@ func (mine *CoterieService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 }
 
 func (mine *CoterieService) UpdateStatus(ctx context.Context, in *pb.RequestIntFlag, out *pb.ReplyInfo) error {
-	path := "family.updateStatus"
+	path := "coterie.updateStatus"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
@@ -217,7 +219,7 @@ func (mine *CoterieService) UpdateStatus(ctx context.Context, in *pb.RequestIntF
 }
 
 func (mine *CoterieService) AppendMember(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyCoterieMembers) error {
-	path := "family.appendMember"
+	path := "coterie.appendMember"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
@@ -243,7 +245,7 @@ func (mine *CoterieService) AppendMember(ctx context.Context, in *pb.RequestInfo
 }
 
 func (mine *CoterieService) SubtractMember(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyCoterieMembers) error {
-	path := "family.subtractMember"
+	path := "coterie.subtractMember"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)

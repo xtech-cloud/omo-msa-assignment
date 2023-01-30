@@ -26,6 +26,8 @@ func switchTeam(info *cache.TeamInfo) *pb.TeamInfo {
 	tmp.Region = info.Region
 	tmp.Assistants = info.Assistants
 	tmp.Owner = info.Owner
+	tmp.Parent = info.Parent
+	tmp.Limit = uint32(info.MaxNum)
 	tmp.Members = info.Members
 	tmp.Tags = info.Tags
 	return tmp
@@ -60,7 +62,7 @@ func (mine *TeamService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTeam(in.Uid)
+	info, er := cache.Context().GetTeam(in.Uid)
 	if er != nil {
 		out.Status = outError(path, "the Team not found ", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -142,7 +144,7 @@ func (mine *TeamService) UpdateBase(ctx context.Context, in *pb.ReqTeamUpdate, o
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTeam(in.Uid)
+	info, er := cache.Context().GetTeam(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -171,7 +173,7 @@ func (mine *TeamService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdat
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTeam(in.Uid)
+	info, er := cache.Context().GetTeam(in.Uid)
 	if er != nil {
 		out.Status = outError(path, "the team not found ", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -179,7 +181,7 @@ func (mine *TeamService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdat
 	var err error
 	if in.Key == "master" {
 		err = info.UpdateMaster(in.Value, in.Operator)
-	}else if in.Key == "assistants" {
+	} else if in.Key == "assistants" {
 		err = info.UpdateAssistants(in.Operator, in.Values)
 	}
 	if err != nil {
@@ -197,7 +199,7 @@ func (mine *TeamService) UpdateStatus(ctx context.Context, in *pb.RequestIntFlag
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTeam(in.Uid)
+	info, er := cache.Context().GetTeam(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -218,7 +220,7 @@ func (mine *TeamService) AppendMember(ctx context.Context, in *pb.RequestList, o
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTeam(in.Uid)
+	info, er := cache.Context().GetTeam(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -242,7 +244,7 @@ func (mine *TeamService) SubtractMember(ctx context.Context, in *pb.RequestList,
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info, er:= cache.Context().GetTeam(in.Uid)
+	info, er := cache.Context().GetTeam(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil

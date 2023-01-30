@@ -18,7 +18,9 @@ type Team struct {
 
 	Creator    string   `json:"creator" bson:"creator"`
 	Operator   string   `json:"operator" bson:"operator"`
+	MaxNum     uint16   `json:"limit" bson:"limit"`
 	Owner      string   `json:"owner" bson:"owner"`
+	Parent     string   `json:"parent" bson:"parent"`
 	Remark     string   `json:"remark" bson:"remark"`
 	Status     uint8    `json:"status" bson:"status"`
 	Region     string   `json:"region" bson:"region"`
@@ -74,7 +76,7 @@ func GetTeamByID(id uint64) (*Team, error) {
 }
 
 func GetTeamByName(owner, name string) (*Team, error) {
-	msg := bson.M{"owner": owner, "name":name, "deleteAt": new(time.Time)}
+	msg := bson.M{"owner": owner, "name": name, "deleteAt": new(time.Time)}
 	result, err := findOneBy(TableTeam, msg)
 	if err != nil {
 		return nil, err

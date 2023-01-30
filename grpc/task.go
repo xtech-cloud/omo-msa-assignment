@@ -162,7 +162,23 @@ func (mine *TaskService) GetListByFilter(ctx context.Context, in *pb.RequestFilt
 func (mine *TaskService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
 	path := "task.getStatistic"
 	inLog(path, in)
-
+	var list []*cache.TaskInfo
+	var err error
+	if in.Key == "target;status" {
+		uid,st := parseString(in.Value, ";")
+		list,err = cache.Context().GetTasksByTarget(uid, st)
+	}else if in.Key == "agent;status" {
+		uid,st := parseString(in.Value, ";")
+		list,err = cache.Context().GetTasksByAgent(uid, st)
+	} else {
+		err = errors.New("the key not defined")
+	}
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+		return nil
+	}
+	out.Key = in.Key
+	out.Count = uint32(len(list))
 	out.Status = outLog(path, out)
 	return nil
 }

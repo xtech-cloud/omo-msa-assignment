@@ -10,14 +10,16 @@ import (
 
 type TeamInfo struct {
 	Status uint8
+	MaxNum uint16
 	baseInfo
-	Remark string
-	Owner string
-	Master string
-	Region string
-	Tags []string
+	Remark     string
+	Owner      string
+	Parent     string
+	Master     string
+	Region     string
+	Tags       []string
 	Assistants []string
-	Members []string
+	Members    []string
 }
 
 func (mine *cacheContext) CreateTeam(info *pb.ReqTeamAdd) (*TeamInfo, error) {
@@ -32,6 +34,8 @@ func (mine *cacheContext) CreateTeam(info *pb.ReqTeamAdd) (*TeamInfo, error) {
 	db.Remark = info.Remark
 	db.Status = uint8(TaskStatusIdle)
 	db.Owner = info.Owner
+	db.Parent = info.Parent
+	db.MaxNum = uint16(info.Limit)
 	db.Master = ""
 	db.Region = info.Region
 	db.Tags = make([]string, 0, 1)
@@ -46,19 +50,19 @@ func (mine *cacheContext) CreateTeam(info *pb.ReqTeamAdd) (*TeamInfo, error) {
 	return nil, err
 }
 
-func (mine *cacheContext) GetTeam(uid string) (*TeamInfo,error) {
-	db,err := nosql.GetTeam(uid)
+func (mine *cacheContext) GetTeam(uid string) (*TeamInfo, error) {
+	db, err := nosql.GetTeam(uid)
 	if err == nil {
 		info := new(TeamInfo)
 		info.initInfo(db)
-		return info,nil
+		return info, nil
 	}
-	return nil,err
+	return nil, err
 }
 
 func (mine *cacheContext) GetTeamsByOwner(scene string) []*TeamInfo {
 	list := make([]*TeamInfo, 0, 10)
-	dbs,err := nosql.GetTeamsByOwner(scene)
+	dbs, err := nosql.GetTeamsByOwner(scene)
 	if err == nil {
 		for _, db := range dbs {
 			info := new(TeamInfo)
@@ -71,7 +75,7 @@ func (mine *cacheContext) GetTeamsByOwner(scene string) []*TeamInfo {
 
 func (mine *cacheContext) GetTeamsByUser(user string) []*TeamInfo {
 	list := make([]*TeamInfo, 0, 10)
-	dbs,err := nosql.GetTeamsByMember(user)
+	dbs, err := nosql.GetTeamsByMember(user)
 	if err == nil {
 		for _, db := range dbs {
 			info := new(TeamInfo)
@@ -83,7 +87,7 @@ func (mine *cacheContext) GetTeamsByUser(user string) []*TeamInfo {
 }
 
 func (mine *cacheContext) HadTeamByName(scene, name string) bool {
-	db,_ := nosql.GetTeamByName(scene, name)
+	db, _ := nosql.GetTeamByName(scene, name)
 	if db == nil {
 		return false
 	}
@@ -108,6 +112,8 @@ func (mine *TeamInfo) initInfo(db *nosql.Team) {
 	mine.Name = db.Name
 	mine.Remark = db.Remark
 	mine.Owner = db.Owner
+	mine.MaxNum = db.MaxNum
+	mine.Parent = db.Parent
 	mine.Master = db.Master
 	mine.Region = db.Region
 	mine.Status = db.Status
@@ -187,7 +193,7 @@ func (mine *TeamInfo) UpdateMembers(operator string, list []string) error {
 }
 
 func (mine *TeamInfo) HadMember(member string) bool {
-	for i := 0;i < len(mine.Members);i += 1 {
+	for i := 0; i < len(mine.Members); i += 1 {
 		if mine.Members[i] == member {
 			return true
 		}
@@ -195,7 +201,7 @@ func (mine *TeamInfo) HadMember(member string) bool {
 	return false
 }
 
-func (mine *TeamInfo)AppendMembers(list []string) error {
+func (mine *TeamInfo) AppendMembers(list []string) error {
 	for _, s := range list {
 		err := mine.AppendMember(s)
 		if err != nil {
@@ -205,8 +211,8 @@ func (mine *TeamInfo)AppendMembers(list []string) error {
 	return nil
 }
 
-func (mine *TeamInfo)AppendMember(member string) error {
-	if mine.HadMember(member){
+func (mine *TeamInfo) AppendMember(member string) error {
+	if mine.HadMember(member) {
 		return nil
 	}
 	err := nosql.AppendTeamMember(mine.UID, member)
@@ -216,7 +222,7 @@ func (mine *TeamInfo)AppendMember(member string) error {
 	return err
 }
 
-func (mine *TeamInfo)SubtractMembers(members []string) error {
+func (mine *TeamInfo) SubtractMembers(members []string) error {
 	for _, member := range members {
 		err := mine.SubtractMember(member)
 		if err != nil {
@@ -226,17 +232,17 @@ func (mine *TeamInfo)SubtractMembers(members []string) error {
 	return nil
 }
 
-func (mine *TeamInfo)SubtractMember(member string) error {
-	if !mine.HadMember(member){
+func (mine *TeamInfo) SubtractMember(member string) error {
+	if !mine.HadMember(member) {
 		return nil
 	}
 	err := nosql.SubtractTeamMember(mine.UID, member)
 	if err == nil {
-		for i := 0;i < len(mine.Members);i += 1 {
+		for i := 0; i < len(mine.Members); i += 1 {
 			if mine.Members[i] == member {
-				if i == len(mine.Members) - 1 {
+				if i == len(mine.Members)-1 {
 					mine.Members = append(mine.Members[:i])
-				}else{
+				} else {
 					mine.Members = append(mine.Members[:i], mine.Members[i+1:]...)
 				}
 				break

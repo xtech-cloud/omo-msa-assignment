@@ -142,6 +142,8 @@ func (mine *MeetingService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 	var err error
 	if in.Key == "submit" {
 		err = info.Submit(in.Value, in.Operator)
+	} else if in.Key == "location"{
+		err = info.UpdateLocation(in.Value, in.Operator, info.Type)
 	} else {
 		err = errors.New("the key not defined")
 	}

@@ -121,12 +121,12 @@ func (mine *cacheContext) checkDistance(center, loc string) bool {
 	}
 }
 
-func (mine *cacheContext) formatTime(from string) time.Time {
+func (mine *cacheContext) formatTime(from string) (time.Time, error) {
 	t, err := time.ParseInLocation("2006-01-02 15:04", from, time.Local)
 	if err == nil {
-		return t
+		return t, nil
 	} else {
-		return time.Now()
+		return time.Now(), err
 	}
 }
 

@@ -74,7 +74,7 @@ func (mine *cacheContext) CreateMeeting(in *pb.ReqMeetingAdd) (*MeetingInfo, err
 	db.Notifies = make([]string, 0, 1)
 	db.Appointed = in.Appointed
 	db.Location = in.Location
-	db.StartTime = Context().formatTime(in.Appointed)
+	db.StartTime, _ = Context().formatTime(in.Appointed)
 	db.Type = uint8(in.Type)
 
 	err := nosql.CreateMeeting(db)
@@ -194,6 +194,20 @@ func (mine *MeetingInfo) UpdateLocation(location, operator string, kind Location
 	if err == nil {
 		mine.Type = kind
 		mine.Location = location
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *MeetingInfo) UpdateStop(date, operator string) error {
+	t, err := Context().formatTime(date)
+	if err != nil {
+		return err
+	}
+	err = nosql.UpdateMeetingStop(mine.UID, operator, t)
+	if err == nil {
+		mine.StopTime = t
+		mine.UpdateTime = time.Now()
 		mine.Operator = operator
 	}
 	return err

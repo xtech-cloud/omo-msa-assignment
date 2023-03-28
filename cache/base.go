@@ -130,6 +130,15 @@ func (mine *cacheContext) formatTime(from string) (time.Time, error) {
 	}
 }
 
+func (mine *cacheContext) formatDate(from string) (time.Time, error) {
+	t, err := time.ParseInLocation("2006-01-02", from, time.Local)
+	if err == nil {
+		return t, nil
+	} else {
+		return time.Now(), err
+	}
+}
+
 // GeoDistance 计算地理距离，依次为两个坐标的纬度、经度、单位（默认：英里，K => 公里，N => 海里）
 func geoDistance(from, to Vector, unit string) float64 {
 	const PI float64 = 3.141592653589793

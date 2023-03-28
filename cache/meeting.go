@@ -120,6 +120,32 @@ func (mine *cacheContext) GetMeetingsByGroup(uid string) []*MeetingInfo {
 	return list
 }
 
+func (mine *cacheContext) GetMeetingsByTime(group, from, to string) ([]*MeetingInfo, error) {
+	list := make([]*MeetingInfo, 0, 5)
+	begin, err := mine.formatDate(from)
+	if err != nil {
+		return list, err
+	}
+	end, err := mine.formatDate(to)
+	if err != nil {
+		return list, err
+	}
+	utcB := begin.Unix()
+	utcE := end.Unix()
+
+	array, err := nosql.GetMeetingsByGroup(group)
+	if err == nil {
+		for _, item := range array {
+			if item.StartTime.Unix() > utcB && item.StopTime.Unix() < utcE {
+				info := new(MeetingInfo)
+				info.initInfo(item)
+				list = append(list, info)
+			}
+		}
+	}
+	return list, nil
+}
+
 func (mine *cacheContext) GetMeetingsByOwner(uid string) []*MeetingInfo {
 	list := make([]*MeetingInfo, 0, 5)
 	array, err := nosql.GetMeetingsByScene(uid)

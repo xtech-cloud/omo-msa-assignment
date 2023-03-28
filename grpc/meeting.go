@@ -111,6 +111,12 @@ func (mine *MeetingService) GetListByFilter(ctx context.Context, in *pb.RequestF
 
 	} else if in.Key == "group" {
 		list = cache.Context().GetMeetingsByGroup(in.Value)
+	} else if in.Key == "time" {
+		if len(in.Values) > 1 {
+			list, err = cache.Context().GetMeetingsByTime(in.Owner, in.Values[0], in.Values[1])
+		} else {
+			err = errors.New("the params is error")
+		}
 	} else {
 		err = errors.New("the key not defined")
 	}

@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"errors"
 	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.assignment/proxy/nosql"
@@ -259,12 +258,12 @@ func (mine *MeetingInfo) Sign(member, operator, location string) error {
 	if mine.HadSigned(member) {
 		return nil
 	}
-	if len(mine.Signs) == 0 {
-		mine.StartTime = time.Now()
-	}
-	if mine.Type == Outside && !Context().checkDistance(mine.Location, location) {
-		return errors.New("the user location incorrect")
-	}
+	//if len(mine.Signs) == 0 {
+	//	mine.StartTime = time.Now()
+	//}
+	//if mine.Type == Outside && !Context().checkDistance(mine.Location, location) {
+	//	return errors.New("the user location incorrect")
+	//}
 	err := nosql.AppendMeetingSign(mine.UID, member, operator)
 	if err == nil {
 		mine.Signs = append(mine.Signs, member)

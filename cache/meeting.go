@@ -67,7 +67,7 @@ func (mine *cacheContext) CreateMeeting(in *pb.ReqMeetingAdd) (*MeetingInfo, err
 	db.Remark = in.Remark
 	db.Group = in.Group
 	db.Owner = in.Owner
-	db.Status = uint8(Idle)
+	db.Status = uint8(Pending)
 	db.Signs = make([]string, 0, 1)
 	db.Submits = make([]string, 0, 1)
 	db.Notifies = make([]string, 0, 1)
@@ -193,15 +193,17 @@ func (mine *MeetingInfo) initInfo(db *nosql.Meeting) bool {
 	return true
 }
 
-func (mine *MeetingInfo) CheckStatus() {
+func (mine *MeetingInfo) CheckStatus() MeetingStatus {
 	if mine.Status == AutoStop || mine.Status == Close {
-		return
+		return mine.Status
 	}
-	diff := time.Now().Unix() - mine.CreateTime.Unix()
-	minute := diff / 60
-	if minute > int64(mine.Duration) {
-		// mine.Status = Close
+	now := time.Now().Unix()
+	if now > mine.StopTime.Unix() {
+		mine.Status = AutoStop
+	} else if now > mine.StartTime.Unix() {
+		mine.Status = Idle
 	}
+	return mine.Status
 }
 
 func (mine *MeetingInfo) UpdateBase(name, remark, operator string) error {

@@ -21,7 +21,7 @@ func switchMeeting(info *cache.MeetingInfo) *pb.MeetingInfo {
 	tmp.Creator = info.Creator
 	tmp.Name = info.Name
 	tmp.Remark = info.Remark
-	tmp.Status = uint32(info.Status)
+	tmp.Status = uint32(info.CheckStatus())
 	tmp.Type = uint32(info.Type)
 	tmp.Owner = info.Owner
 	tmp.Group = info.Group

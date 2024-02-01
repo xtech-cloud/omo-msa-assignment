@@ -152,6 +152,12 @@ func (mine *MeetingService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 		err = info.UpdateLocation(in.Value, in.Operator, info.Type)
 	} else if in.Key == "stop" {
 		err = info.UpdateStop(in.Value, in.Operator)
+	} else if in.Key == "group" {
+		err = info.UpdateGroup(in.Value, in.Operator)
+	} else if in.Key == "date" {
+		begin := parseStringToInt(in.Values[0])
+		end := parseStringToInt(in.Values[1])
+		err = info.UpdateStartEnd(begin, end, in.Operator)
 	} else {
 		err = errors.New("the key not defined")
 	}

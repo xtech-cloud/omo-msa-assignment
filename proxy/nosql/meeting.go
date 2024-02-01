@@ -118,6 +118,18 @@ func UpdateMeetingLocation(uid, location, operator string, kind uint8) error {
 	return err
 }
 
+func UpdateMeetingGroup(uid, operator, group string) error {
+	msg := bson.M{"group": group, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableMeeting, uid, msg)
+	return err
+}
+
+func UpdateMeetingDate(uid, operator string, start, stop time.Time) error {
+	msg := bson.M{"startAt": start, "stopAt": stop, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableMeeting, uid, msg)
+	return err
+}
+
 func UpdateMeetingStop(uid, operator string, t time.Time) error {
 	msg := bson.M{"stopAt": t, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableMeeting, uid, msg)

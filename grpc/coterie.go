@@ -61,12 +61,12 @@ func (mine *CoterieService) GetOne(ctx context.Context, in *pb.RequestInfo, out 
 	var info *cache.CoterieInfo
 	var er error
 	if len(in.Uid) > 1 {
-		info,er = cache.Context().GetCoterie(in.Uid)
-	}else if in.Flag == "centre" {
-		info,er = cache.Context().GetCoterieByCentre(in.User)
-	}else if in.Flag == "creator" {
-		info,er = cache.Context().GetCoterieByCreator(in.User)
-	}else {
+		info, er = cache.Context().GetCoterie(in.Uid)
+	} else if in.Flag == "centre" {
+		info, er = cache.Context().GetCoterieByCentre(in.User)
+	} else if in.Flag == "creator" {
+		info, er = cache.Context().GetCoterieByCreator(in.User)
+	} else {
 		er = errors.New("")
 	}
 
@@ -126,10 +126,16 @@ func (mine *CoterieService) GetListByFilter(ctx context.Context, in *pb.RequestF
 	var list []*cache.CoterieInfo
 	var err error
 	if in.Key == "user" {
-		list,err = cache.Context().GetCoteriesByMember(in.Value)
-	}else if in.Key == "member" {
-		list,err = cache.Context().GetCoteriesByMember(in.Value)
-	}else {
+		list, err = cache.Context().GetCoteriesByMember(in.Value)
+	} else if in.Key == "member" {
+		list, err = cache.Context().GetCoteriesByMember(in.Value)
+	} else if in.Key == "creator" {
+		list, err = cache.Context().GetCoteriesByCreator(in.Value)
+	} else if in.Key == "master" {
+		list, err = cache.Context().GetCoteriesByMaster(in.Value)
+	} else if in.Key == "all" {
+		list, err = cache.Context().GetAllCoteries()
+	} else {
 		err = errors.New("the key not defined")
 	}
 	if err != nil {
@@ -151,7 +157,7 @@ func (mine *CoterieService) UpdateBase(ctx context.Context, in *pb.ReqCoterieUpd
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetCoterie(in.Uid)
+	info, er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -173,7 +179,7 @@ func (mine *CoterieService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetCoterie(in.Uid)
+	info, er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -181,9 +187,9 @@ func (mine *CoterieService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 	var err error
 	if in.Key == "passwords" {
 		err = info.UpdatePasswords(in.Value, in.Operator)
-	}else if in.Key == "master" {
+	} else if in.Key == "master" {
 		err = info.UpdateMaster(in.Value, in.Operator)
-	}else if in.Key == "sn" {
+	} else if in.Key == "sn" {
 		err = info.UpdateMaster(in.Value, in.Operator)
 	} else if in.Key == "identify" {
 		err = info.UpdateMemberIdentify(in.Operator, in.Value, in.Values[0])
@@ -203,7 +209,7 @@ func (mine *CoterieService) UpdateStatus(ctx context.Context, in *pb.RequestIntF
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetCoterie(in.Uid)
+	info, er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -225,7 +231,7 @@ func (mine *CoterieService) AppendMember(ctx context.Context, in *pb.RequestInfo
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetCoterie(in.Uid)
+	info, er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -251,7 +257,7 @@ func (mine *CoterieService) SubtractMember(ctx context.Context, in *pb.RequestIn
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetCoterie(in.Uid)
+	info, er := cache.Context().GetCoterie(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil

@@ -81,6 +81,51 @@ func (mine *cacheContext) GetCoteriesByMember(uid string) ([]*CoterieInfo, error
 	return list, nil
 }
 
+func (mine *cacheContext) GetAllCoteries() ([]*CoterieInfo, error) {
+	dbs, err := nosql.GetAllCoteries()
+	if err != nil {
+		return make([]*CoterieInfo, 0, 1), err
+	}
+	list := make([]*CoterieInfo, 0, len(dbs))
+	for _, db := range dbs {
+		info := new(CoterieInfo)
+		info.initInfo(db)
+		list = append(list, info)
+	}
+
+	return list, nil
+}
+
+func (mine *cacheContext) GetCoteriesByCreator(uid string) ([]*CoterieInfo, error) {
+	dbs, err := nosql.GetCoteriesByCreator(uid)
+	if err != nil {
+		return make([]*CoterieInfo, 0, 1), err
+	}
+	list := make([]*CoterieInfo, 0, len(dbs))
+	for _, db := range dbs {
+		info := new(CoterieInfo)
+		info.initInfo(db)
+		list = append(list, info)
+	}
+
+	return list, nil
+}
+
+func (mine *cacheContext) GetCoteriesByMaster(uid string) ([]*CoterieInfo, error) {
+	dbs, err := nosql.GetCoteriesByMaster(uid)
+	if err != nil {
+		return make([]*CoterieInfo, 0, 1), err
+	}
+	list := make([]*CoterieInfo, 0, len(dbs))
+	for _, db := range dbs {
+		info := new(CoterieInfo)
+		info.initInfo(db)
+		list = append(list, info)
+	}
+
+	return list, nil
+}
+
 func (mine *cacheContext) GetCoterieByCreator(user string) (*CoterieInfo, error) {
 	db, err := nosql.GetCoterieByCreator(user)
 	if err != nil {
@@ -160,7 +205,7 @@ func (mine *CoterieInfo) UpdateStatus(operator string, st uint8) error {
 	return err
 }
 
-func (mine *CoterieInfo) UpdatePasswords(psw, operator  string) error {
+func (mine *CoterieInfo) UpdatePasswords(psw, operator string) error {
 	err := nosql.UpdateCoteriePasswords(mine.UID, operator, psw)
 	if err == nil {
 		mine.Passwords = psw

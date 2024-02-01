@@ -226,6 +226,27 @@ func (mine *MeetingInfo) UpdateLocation(location, operator string, kind Location
 	return err
 }
 
+func (mine *MeetingInfo) UpdateStartEnd(begin, end int64, operator string) error {
+	from := time.Unix(begin, 0).UTC()
+	to := time.Unix(end, 0).UTC()
+	err := nosql.UpdateMeetingDate(mine.UID, operator, from, to)
+	if err == nil {
+		mine.StartTime = from
+		mine.Operator = operator
+		mine.StopTime = to
+	}
+	return err
+}
+
+func (mine *MeetingInfo) UpdateGroup(group, operator string) error {
+	err := nosql.UpdateMeetingGroup(mine.UID, operator, group)
+	if err == nil {
+		mine.Group = group
+		mine.Operator = operator
+	}
+	return err
+}
+
 func (mine *MeetingInfo) UpdateStop(date, operator string) error {
 	t, err := Context().formatTime(date)
 	if err != nil {

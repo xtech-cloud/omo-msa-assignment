@@ -17,6 +17,8 @@ func switchAgent(info *cache.AgentInfo) *pb.AgentInfo {
 	tmp.Id = info.ID
 	tmp.Created = info.CreateTime.Unix()
 	tmp.Updated = info.UpdateTime.Unix()
+	tmp.Creator = info.Creator
+	tmp.Operator = info.Operator
 	tmp.Name = info.Name
 	tmp.Owner = info.Owner
 	tmp.Remark = info.Remark
@@ -55,9 +57,9 @@ func (mine *AgentService) GetOne(ctx context.Context, in *pb.RequestInfo, out *p
 	var info *cache.AgentInfo
 	var err error
 	if in.Flag == "user" {
-		info,err = cache.Context().GetAgentByUser(in.Operator)
-	}else{
-		info,err = cache.Context().GetAgent(in.Uid)
+		info, err = cache.Context().GetAgentByUser(in.Operator)
+	} else {
+		info, err = cache.Context().GetAgent(in.Uid)
 	}
 
 	if err != nil {
@@ -150,8 +152,8 @@ func (mine *AgentService) UpdateBase(ctx context.Context, in *pb.ReqAgentUpdate,
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetAgent(in.Uid)
-	if er == nil {
+	info, er := cache.Context().GetAgent(in.Uid)
+	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
@@ -172,7 +174,7 @@ func (mine *AgentService) UpdateByFilter(ctx context.Context, in *pb.RequestUpda
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetAgent(in.Uid)
+	info, er := cache.Context().GetAgent(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -181,11 +183,11 @@ func (mine *AgentService) UpdateByFilter(ctx context.Context, in *pb.RequestUpda
 
 	if in.Key == "entity" {
 		err = info.UpdateEntity(in.Value, in.Operator)
-	}else if in.Key == "tags" {
+	} else if in.Key == "tags" {
 		err = info.UpdateTags(in.Operator, in.Values)
-	}else if in.Key == "regions" {
+	} else if in.Key == "regions" {
 		err = info.UpdateRegions(in.Operator, in.Values)
-	}else if in.Key == "attaches" {
+	} else if in.Key == "attaches" {
 		err = info.UpdateAttaches(in.Operator, in.Values)
 	}
 	if err != nil {
@@ -204,7 +206,7 @@ func (mine *AgentService) UpdateStatus(ctx context.Context, in *pb.RequestIntFla
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetAgent(in.Uid)
+	info, er := cache.Context().GetAgent(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil

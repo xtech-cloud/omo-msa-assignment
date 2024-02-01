@@ -23,7 +23,7 @@ func switchTask(info *cache.TaskInfo) *pb.TaskInfo {
 	tmp.Creator = info.Creator
 	tmp.Name = info.Name
 	tmp.Target = info.Target
-	tmp.Type =uint32(info.Type)
+	tmp.Type = uint32(info.Type)
 	tmp.Status = uint32(info.Status)
 	tmp.Remark = info.Remark
 	tmp.Way = info.Way
@@ -80,7 +80,7 @@ func (mine *TaskService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTask(in.Uid)
+	info, er := cache.Context().GetTask(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -128,18 +128,18 @@ func (mine *TaskService) GetListByFilter(ctx context.Context, in *pb.RequestFilt
 	var err error
 	if in.Key == "status" {
 		st := parseStringToInt(in.Value)
-		total, max, list = cache.Context().GetTasksByOwner(in.Owner, st, in.Page, in.Number)
-	}else if in.Key == "target;status" {
-		uid,st := parseString(in.Value, ";")
-		list,err = cache.Context().GetTasksByTarget(uid, st)
+		total, max, list = cache.Context().GetTasksByOwner(in.Owner, int(st), in.Page, in.Number)
+	} else if in.Key == "target;status" {
+		uid, st := parseString(in.Value, ";")
+		list, err = cache.Context().GetTasksByTarget(uid, st)
 	} else if in.Key == "agent;status" {
-		uid,st := parseString(in.Value, ";")
-		list,err = cache.Context().GetTasksByAgent(uid, st)
+		uid, st := parseString(in.Value, ";")
+		list, err = cache.Context().GetTasksByAgent(uid, st)
 	} else if in.Key == "regions" {
 		list = cache.Context().GetTasksByRegions(in.Values, -1)
 	} else if in.Key == "regions;status" {
 		st := parseStringToInt(in.Value)
-		list = cache.Context().GetTasksByRegions(in.Values, st)
+		list = cache.Context().GetTasksByRegions(in.Values, int(st))
 	} else {
 		err = errors.New("the key not defined")
 	}
@@ -165,11 +165,11 @@ func (mine *TaskService) GetStatistic(ctx context.Context, in *pb.RequestFilter,
 	var list []*cache.TaskInfo
 	var err error
 	if in.Key == "target;status" {
-		uid,st := parseString(in.Value, ";")
-		list,err = cache.Context().GetTasksByTarget(uid, st)
-	}else if in.Key == "agent;status" {
-		uid,st := parseString(in.Value, ";")
-		list,err = cache.Context().GetTasksByAgent(uid, st)
+		uid, st := parseString(in.Value, ";")
+		list, err = cache.Context().GetTasksByTarget(uid, st)
+	} else if in.Key == "agent;status" {
+		uid, st := parseString(in.Value, ";")
+		list, err = cache.Context().GetTasksByAgent(uid, st)
 	} else {
 		err = errors.New("the key not defined")
 	}
@@ -190,7 +190,7 @@ func (mine *TaskService) UpdateBase(ctx context.Context, in *pb.ReqTaskUpdate, o
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTask(in.Uid)
+	info, er := cache.Context().GetTask(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -212,14 +212,14 @@ func (mine *TaskService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdat
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTask(in.Uid)
+	info, er := cache.Context().GetTask(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	if in.Key == "" {
-		val,_ := strconv.ParseUint(in.Value, 10, 32)
+		val, _ := strconv.ParseUint(in.Value, 10, 32)
 		err = info.UpdateType(in.Operator, uint8(val))
 	}
 
@@ -239,7 +239,7 @@ func (mine *TaskService) UpdateStatus(ctx context.Context, in *pb.RequestIntFlag
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTask(in.Uid)
+	info, er := cache.Context().GetTask(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -265,7 +265,7 @@ func (mine *TaskService) AppendAgent(ctx context.Context, in *pb.RequestInfo, ou
 		out.Status = outError(path, "the Task uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTask(in.Uid)
+	info, er := cache.Context().GetTask(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -292,7 +292,7 @@ func (mine *TaskService) SubtractAgent(ctx context.Context, in *pb.RequestInfo, 
 		out.Status = outError(path, "the Task uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTask(in.Uid)
+	info, er := cache.Context().GetTask(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -315,7 +315,7 @@ func (mine *TaskService) AppendRecord(ctx context.Context, in *pb.ReqTaskRecord,
 		out.Status = outError(path, "the parent is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTask(in.Task)
+	info, er := cache.Context().GetTask(in.Task)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -338,7 +338,7 @@ func (mine *TaskService) SubtractRecord(ctx context.Context, in *pb.RequestInfo,
 		out.Status = outError(path, "the task uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info,er := cache.Context().GetTask(in.Uid)
+	info, er := cache.Context().GetTask(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil

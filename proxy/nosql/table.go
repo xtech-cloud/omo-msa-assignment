@@ -13,4 +13,11 @@ const (
 	TableCoterie = "coteries"
 	TableApply   = "applies"
 	TableMeeting = "meetings"
+
+	/**
+	知识题库
+	*/
+	TableQuestion = "lore_questions"
+	TableRecord   = "lore_records"
+	TableCategory = "lore_category"
 )

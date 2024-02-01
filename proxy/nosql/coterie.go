@@ -23,10 +23,10 @@ type Coterie struct {
 	Passwords  string   `json:"passwords" bson:"passwords"`
 	Master     string   `json:"master" bson:"master"`
 	Remark     string   `json:"remark" bson:"remark"`
-    Type       uint8 	`json:"type" bson:"type"`
+	Type       uint8    `json:"type" bson:"type"`
 	Status     uint8    `json:"status" bson:"status"`
 	Centre     string   `json:"centre" bson:"centre"`
-	Meta       string 	`json:"meta" bson:"meta"`
+	Meta       string   `json:"meta" bson:"meta"`
 	Assistants []string `json:"assistants" bson:"assistants"`
 	Tags       []string `json:"tags" bson:"tags"`
 	// 家庭成员，保存User的uid
@@ -88,7 +88,8 @@ func GetCoterieByCentre(centre string) (*Coterie, error) {
 }
 
 func GetAllCoteries() ([]*Coterie, error) {
-	cursor, err1 := findAll(TableCoterie, 0)
+	msg := bson.M{"deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableCoterie, msg, 0)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -124,8 +125,46 @@ func GetCoteriesByMember(user string) ([]*Coterie, error) {
 	return items, nil
 }
 
+func GetCoteriesByCreator(user string) ([]*Coterie, error) {
+	msg := bson.M{"creator": user, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableCoterie, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	defer cursor.Close(context.Background())
+	var items = make([]*Coterie, 0, 10)
+	for cursor.Next(context.Background()) {
+		var node = new(Coterie)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetCoteriesByMaster(user string) ([]*Coterie, error) {
+	msg := bson.M{"master": user, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableCoterie, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	defer cursor.Close(context.Background())
+	var items = make([]*Coterie, 0, 10)
+	for cursor.Next(context.Background()) {
+		var node = new(Coterie)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func UpdateCoterieBase(uid, name, remark, psw, operator string) error {
-	msg := bson.M{"name": name, "remark": remark,  "passwords": psw, "operator": operator, "updatedAt": time.Now()}
+	msg := bson.M{"name": name, "remark": remark, "passwords": psw, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableCoterie, uid, msg)
 	return err
 }

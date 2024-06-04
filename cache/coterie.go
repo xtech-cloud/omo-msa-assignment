@@ -4,6 +4,7 @@ import (
 	"errors"
 	pb "github.com/xtech-cloud/omo-msp-assignment/proto/assignment"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"math"
 	"omo.msa.assignment/proxy"
 	"omo.msa.assignment/proxy/nosql"
 	"time"
@@ -81,11 +82,21 @@ func (mine *cacheContext) GetCoteriesByMember(uid string) ([]*CoterieInfo, error
 	return list, nil
 }
 
-func (mine *cacheContext) GetAllCoteries() ([]*CoterieInfo, error) {
-	dbs, err := nosql.GetAllCoteries()
-	if err != nil {
-		return make([]*CoterieInfo, 0, 1), err
+func (mine *cacheContext) GetAllCoteries(page, num uint32) (uint32, uint32, []*CoterieInfo, error) {
+	if page < 1 {
+		page = 1
 	}
+	if num < 1 {
+		num = 10
+	}
+	start := (page - 1) * num
+	dbs, err := nosql.GetAllCoteries(int64(start), int64(num))
+
+	if err != nil {
+		return 0, 0, make([]*CoterieInfo, 0, 1), err
+	}
+	total := nosql.GetActivitiesCount()
+	pages := math.Ceil(float64(total) / float64(num))
 	list := make([]*CoterieInfo, 0, len(dbs))
 	for _, db := range dbs {
 		info := new(CoterieInfo)
@@ -93,7 +104,7 @@ func (mine *cacheContext) GetAllCoteries() ([]*CoterieInfo, error) {
 		list = append(list, info)
 	}
 
-	return list, nil
+	return uint32(total), uint32(pages), list, nil
 }
 
 func (mine *cacheContext) GetCoteriesByCreator(uid string) ([]*CoterieInfo, error) {

@@ -125,6 +125,8 @@ func (mine *CoterieService) GetListByFilter(ctx context.Context, in *pb.RequestF
 	inLog(path, in)
 	var list []*cache.CoterieInfo
 	var err error
+	var total uint32 = 0
+	var pages uint32 = 0
 	if in.Key == "user" {
 		list, err = cache.Context().GetCoteriesByMember(in.Value)
 	} else if in.Key == "member" {
@@ -134,7 +136,7 @@ func (mine *CoterieService) GetListByFilter(ctx context.Context, in *pb.RequestF
 	} else if in.Key == "master" {
 		list, err = cache.Context().GetCoteriesByMaster(in.Value)
 	} else if in.Key == "all" {
-		list, err = cache.Context().GetAllCoteries()
+		total, pages, list, err = cache.Context().GetAllCoteries(in.Page, in.Number)
 	} else {
 		err = errors.New("the key not defined")
 	}
@@ -146,6 +148,8 @@ func (mine *CoterieService) GetListByFilter(ctx context.Context, in *pb.RequestF
 	for _, value := range list {
 		out.List = append(out.List, switchCoterie(value))
 	}
+	out.Total = total
+	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }

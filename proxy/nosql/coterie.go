@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"omo.msa.assignment/proxy"
 	"time"
 )
@@ -87,9 +88,21 @@ func GetCoterieByCentre(centre string) (*Coterie, error) {
 	return model, nil
 }
 
-func GetAllCoteries() ([]*Coterie, error) {
+func GetActivitiesCount() int64 {
+	def := new(time.Time)
+	filter := bson.M{"deleteAt": def}
+	num, err1 := getCountBy(TableCoterie, filter)
+	if err1 != nil {
+		return num
+	}
+
+	return num
+}
+
+func GetAllCoteries(page, num int64) ([]*Coterie, error) {
 	msg := bson.M{"deleteAt": new(time.Time)}
-	cursor, err1 := findMany(TableCoterie, msg, 0)
+	opts := options.Find().SetSort(bson.D{{"createdAt", -1}}).SetLimit(num).SetSkip(page)
+	cursor, err1 := findManyByOpts(TableCoterie, msg, opts)
 	if err1 != nil {
 		return nil, err1
 	}

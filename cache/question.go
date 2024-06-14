@@ -14,10 +14,11 @@ type QuestionInfo struct {
 	baseInfo
 	Quote    string
 	Remark   string
-	Answers  []uint32
-	Options  []proxy.PairInfo
 	Cd       int
 	Category string
+	Answers  []uint32
+	Assets   []string
+	Options  []proxy.PairInfo
 }
 
 func (mine *cacheContext) NewQuestion(title, remark, category, entity, operator string, cd int, answers []uint32, options []*pb.QuestionOption) (*QuestionInfo, error) {
@@ -31,6 +32,7 @@ func (mine *cacheContext) NewQuestion(title, remark, category, entity, operator 
 	db.Quote = entity
 	db.Cd = uint16(cd)
 	db.Answers = answers
+	db.Assets = make([]string, 0, 1)
 	db.Category = category
 	db.Options = make([]proxy.PairInfo, 0, len(options))
 	for _, v := range options {
@@ -127,22 +129,37 @@ func (mine *QuestionInfo) initInfo(db *nosql.Question) {
 	mine.Cd = int(db.Cd)
 	mine.Quote = db.Quote
 	mine.Answers = db.Answers
+	mine.Assets = db.Assets
 	mine.Options = db.Options
 	mine.Category = db.Category
 }
 
-func (mine *QuestionInfo) UpdateAnswers(answers []uint32) error {
-	err := nosql.UpdateQuestionAnswers(mine.UID, "", answers)
+func (mine *QuestionInfo) UpdateAnswers(operator string, answers []uint32) error {
+	err := nosql.UpdateQuestionAnswers(mine.UID, operator, answers)
 	if err == nil {
 		mine.Answers = answers
+		mine.Operator = operator
 	}
 	return err
 }
 
-func (mine *QuestionInfo) UpdateOptions(lis []proxy.PairInfo) error {
-	err := nosql.UpdateQuestionOptions(mine.UID, "", lis)
+func (mine *QuestionInfo) UpdateAssets(operator string, arr []string) error {
+	if arr == nil {
+		arr = make([]string, 0, 1)
+	}
+	err := nosql.UpdateQuestionAssets(mine.UID, operator, arr)
+	if err == nil {
+		mine.Assets = arr
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *QuestionInfo) UpdateOptions(operator string, lis []proxy.PairInfo) error {
+	err := nosql.UpdateQuestionOptions(mine.UID, operator, lis)
 	if err == nil {
 		mine.Options = lis
+		mine.Operator = operator
 	}
 	return err
 }

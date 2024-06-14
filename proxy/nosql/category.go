@@ -36,6 +36,13 @@ func UpdateCategoryStr(filter string, value, operator, uid string) error {
 	_, err := updateOne(TableCategory, uid, msg)
 	return err
 }
+
+func UpdateCategoryOwner(uid, owner string) error {
+	msg := bson.M{"owner": owner, "updatedAt": time.Now()}
+	_, err := updateOne(TableCategory, uid, msg)
+	return err
+}
+
 func UpdateCategoryBase(uid, name, remark, quote, operator string) error {
 	msg := bson.M{"name": name, "remark": remark, "quote": quote, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableCategory, uid, msg)
@@ -119,8 +126,8 @@ func GetCategoryListByParent(parent string) ([]*Category, error) {
 	return items, nil
 }
 
-func GetCategoryListByOwner(uid string) ([]*Category, error) {
-	msg := bson.M{"owner": uid, "deleteAt": new(time.Time)}
+func GetCategoryListByOwner(owner, parent string) ([]*Category, error) {
+	msg := bson.M{"owner": owner, "parent": parent, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableCategory, msg, 0)
 	if err1 != nil {
 		return nil, err1

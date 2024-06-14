@@ -2,10 +2,13 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.assignment/proxy/nosql"
 	"time"
 )
+
+const DefaultParent = "0"
 
 type CategoryInfo struct {
 	baseInfo
@@ -22,10 +25,11 @@ func (mine *cacheContext) NewCategory(name, parent, source, operator string, wei
 	db.CreatedTime = time.Now()
 	db.Operator = operator
 	db.Name = name
-	db.Parent = "0"
+	db.Parent = DefaultParent
 	if parent != "" {
 		db.Parent = parent
 	}
+	db.Owner = DefaultOwner
 	db.Quote = source
 	db.Weight = weight
 	if db.Weight > 0 {
@@ -38,9 +42,9 @@ func (mine *cacheContext) NewCategory(name, parent, source, operator string, wei
 		}
 		for _, v := range categoryList {
 			if v.Weight >= db.Weight {
-				err := nosql.UpdateCategoryInt("weight", "", v.UID.Hex(), int64(v.Weight+1))
-				if err != nil {
-					return nil, err
+				err1 := nosql.UpdateCategoryInt("weight", "", v.UID.Hex(), int64(v.Weight+1))
+				if err1 != nil {
+					return nil, err1
 				}
 			}
 		}
@@ -85,13 +89,13 @@ func (mine *cacheContext) GetCategoriesByParent(parent string) ([]*CategoryInfo,
 	return list, nil
 }
 
-func (mine *cacheContext) GetCategoriesByScene(owner string) ([]*CategoryInfo, error) {
+func (mine *cacheContext) GetTopCategoriesByScene(owner string) ([]*CategoryInfo, error) {
 	var array []*nosql.Category
 	var err error
 	if len(owner) > 2 {
-		array, err = nosql.GetCategoryListByOwner(owner)
+		array, err = nosql.GetCategoryListByOwner(owner, DefaultParent)
 	} else {
-		array, err = nosql.GetAllCategories()
+		array, err = nosql.GetCategoryListByOwner(DefaultOwner, DefaultParent)
 	}
 
 	if err != nil {
@@ -204,21 +208,18 @@ func (mine *CategoryInfo) Delete(operator string) error {
 		return err
 	}
 	if len(list) > 0 {
-		return errors.New("the up question have sup")
+		return errors.New(fmt.Sprintf("the children count = %d", len(list)))
 	}
-	if mine.Parent == "0" {
+	if mine.Parent == DefaultParent {
 		err = nosql.DeleteCategory(mine.UID, operator)
 		if err != nil {
 			return err
 		}
 		return nil
 	}
-	arr, err := nosql.GetQuestionsByCategory(mine.UID)
-	if err != nil {
-		return err
-	}
-	if len(arr) > 0 {
-		return errors.New("the up question have sup")
+	num := nosql.GetQuestionCount(mine.UID)
+	if num > 0 {
+		return errors.New(fmt.Sprintf("the children question count = %d", num))
 	}
 	err = nosql.DeleteCategory(mine.UID, operator)
 	if err != nil {
@@ -230,9 +231,9 @@ func (mine *CategoryInfo) Delete(operator string) error {
 	}
 	for _, v := range infos {
 		if v.Weight > mine.Weight {
-			err := nosql.UpdateCategoryInt("weight", "", v.UID.Hex(), int64(v.Weight-1))
-			if err != nil {
-				return err
+			err1 := nosql.UpdateCategoryInt("weight", "", v.UID.Hex(), int64(v.Weight-1))
+			if err1 != nil {
+				return err1
 			}
 		}
 	}

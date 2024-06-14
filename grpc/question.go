@@ -25,7 +25,7 @@ func switchQuestion(info *cache.QuestionInfo) *pb.QuestionInfo {
 	tmp.Creator = info.Creator
 	tmp.Quote = info.Quote
 	tmp.Answers = info.Answers
-	tmp.Assets = make([]string, 0, 1)
+	tmp.Assets = info.Assets
 	tmp.Options = make([]*pb.QuestionOption, 0, len(info.Options))
 	for _, option := range info.Options {
 		id, _ := strconv.Atoi(option.Key)
@@ -164,13 +164,15 @@ func (mine *QuestionService) UpdateByFilter(ctx context.Context, in *pb.RequestU
 		out.Status = outError(path, "the uid is empty ", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	_, er := cache.Context().GetQuestion(in.Uid)
+	info, er := cache.Context().GetQuestion(in.Uid)
 	if er != nil {
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
-
+	if in.Key == "assets" {
+		err = info.UpdateAssets(in.Operator, in.Values)
+	}
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil

@@ -113,7 +113,9 @@ func (mine *CategoryService) GetListByFilter(ctx context.Context, in *pb.Request
 		return nil
 	}
 	if in.Key == "scene" {
-		list, err = cache.Context().GetCategoriesByScene(in.Value)
+		list, err = cache.Context().GetTopCategoriesByScene(in.Value)
+	} else if in.Key == "parent" {
+		list, err = cache.Context().GetCategoriesByParent(in.Value)
 	} else {
 		err = errors.New("the key not defined")
 	}

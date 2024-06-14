@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const DefaultOwner = "system"
+
 type baseInfo struct {
 	ID         uint64 `json:"-"`
 	UID        string `json:"uid"`
@@ -43,6 +45,12 @@ func InitData() error {
 	//for _, db := range dbs {
 	//	fmt.Printf(db.Name)
 	//}
+	dbs, _ := nosql.GetAllCategories()
+	for _, db := range dbs {
+		if len(db.Owner) < 2 {
+			_ = nosql.UpdateCategoryOwner(db.UID.Hex(), DefaultOwner)
+		}
+	}
 	return nil
 }
 

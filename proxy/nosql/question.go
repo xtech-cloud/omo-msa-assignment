@@ -23,6 +23,7 @@ type Question struct {
 	Category string           `json:"category" bson:"category"`
 	Quote    string           `json:"quote" bson:"quote"`
 	Answers  []uint32         `json:"answers" bson:"answers"`
+	Assets   []string         `json:"assets" bson:"assets"`
 	Options  []proxy.PairInfo `json:"options" bson:"options"`
 }
 
@@ -108,6 +109,12 @@ func GetQuestionsByTitle(title, category string) ([]*Question, error) {
 	return items, nil
 }
 
+func GetQuestionCount(category string) uint32 {
+	msg := bson.M{"category": category, "deleteAt": new(time.Time)}
+	num, _ := getCountBy(TableQuestion, msg)
+	return uint32(num)
+}
+
 func GetQuestionsByCategory(category string) ([]*Question, error) {
 	msg := bson.M{"category": category, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableQuestion, msg, 0)
@@ -154,6 +161,12 @@ func UpdateQuestionBase(uid, title, remark, operator, category string, cd uint16
 
 func UpdateQuestionAnswers(uid, operator string, answers []uint32) error {
 	msg := bson.M{"answers": answers, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableQuestion, uid, msg)
+	return err
+}
+
+func UpdateQuestionAssets(uid, operator string, assets []string) error {
+	msg := bson.M{"assets": assets, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableQuestion, uid, msg)
 	return err
 }

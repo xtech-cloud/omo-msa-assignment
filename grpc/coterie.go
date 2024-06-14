@@ -196,7 +196,11 @@ func (mine *CoterieService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 	} else if in.Key == "sn" {
 		err = info.UpdateMaster(in.Value, in.Operator)
 	} else if in.Key == "identify" {
-		err = info.UpdateMemberIdentify(in.Operator, in.Value, in.Values[0])
+		if len(in.Values) == 1 {
+			err = info.UpdateMemberIdentify(in.Operator, in.Value, in.Values[0])
+		} else {
+			err = info.UpdateMemberIdentify(in.Operator, in.Value, "")
+		}
 	}
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

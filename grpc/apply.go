@@ -38,7 +38,7 @@ func (mine *ApplyService) AddOne(ctx context.Context, in *pb.ReqApplyAdd, out *p
 		return nil
 	}
 
-	info, err := cache.Context().CreateApply(in.Owner, in.Group, in.Applicant, in.Inviter, uint8(in.Type))
+	info, err := cache.Context().CreateApply(in.Operator, in.Owner, in.Group, in.Applicant, in.Inviter, in.Remark, uint8(in.Type))
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -100,13 +100,16 @@ func (mine *ApplyService) GetListByFilter(ctx context.Context, in *pb.RequestFil
 	var list []*cache.ApplyInfo
 	var err error
 	if in.Key == "" {
-		list = cache.Context().GetAppliesByOwner(in.Owner)
-	} else if in.Key == "type" {
-
+		list = cache.Context().GetAppliesByOwner(in.Owner, -1)
+	} else if in.Key == "creator" {
+		list = cache.Context().GetAppliesByCreator(in.Value)
 	} else if in.Key == "application" {
 		list = cache.Context().GetAppliesByUser(in.Value)
 	} else if in.Key == "group" {
 		list = cache.Context().GetAppliesByGroup(in.Value)
+	} else if in.Key == "scene" {
+		tp := parseStringToInt(in.Value)
+		list = cache.Context().GetAppliesByOwner(in.Owner, int32(tp))
 	} else {
 		err = errors.New("the key not defined")
 	}
@@ -162,7 +165,7 @@ func (mine *ApplyService) UpdateStatus(ctx context.Context, in *pb.RequestIntFla
 		out.Status = outError(path, er.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SetStatus(uint8(in.Flag), in.Operator)
+	err := info.SetStatus(uint8(in.Flag), in.Remark, in.Operator)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -170,4 +173,3 @@ func (mine *ApplyService) UpdateStatus(ctx context.Context, in *pb.RequestIntFla
 	out.Status = outLog(path, out)
 	return nil
 }
-

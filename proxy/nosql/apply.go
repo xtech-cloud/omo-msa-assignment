@@ -26,6 +26,8 @@ type Apply struct {
 	Scene   string `json:"scene" bson:"scene"`
 	//申请加入的组织或者部门，队伍
 	Group      string    `json:"group" bson:"group"`
+	Reason     string    `json:"reason" bson:"reason"`
+	Remark     string    `json:"remark" bson:"remark"`
 	SubmitTime time.Time `json:"submit" bson:"submit"`
 }
 
@@ -73,7 +75,25 @@ func GetAppliesByGroup(group string) ([]*Apply, error) {
 	return items, nil
 }
 
-func GetAppliesByScene(scene string) ([]*Apply, error) {
+func GetAppliesByScene(scene string, tp uint8) ([]*Apply, error) {
+	msg := bson.M{"scene": scene, "type": tp, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableApply, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Apply, 0, 5)
+	for cursor.Next(context.Background()) {
+		var node = new(Apply)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetAppliesByScene1(scene string) ([]*Apply, error) {
 	msg := bson.M{"scene": scene, "deleteAt": new(time.Time)}
 	cursor, err1 := findMany(TableApply, msg, 0)
 	if err1 != nil {
@@ -109,8 +129,26 @@ func GetAppliesByApplicant(user string) ([]*Apply, error) {
 	return items, nil
 }
 
-func UpdateApply(uid, operator string, status uint8) error {
-	msg := bson.M{"status": status, "operator": operator, "updatedAt": time.Now()}
+func GetAppliesByCreator(user string) ([]*Apply, error) {
+	msg := bson.M{"creator": user, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableApply, msg, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Apply, 0, 5)
+	for cursor.Next(context.Background()) {
+		var node = new(Apply)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func UpdateApply(uid, reason, operator string, status uint8) error {
+	msg := bson.M{"status": status, "reason": reason, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableApply, uid, msg)
 	return err
 }

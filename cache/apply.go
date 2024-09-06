@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.assignment/proxy/nosql"
 	"time"
@@ -181,11 +180,12 @@ func (mine *ApplyInfo) initInfo(db *nosql.Apply) bool {
 }
 
 func (mine *ApplyInfo) SetStatus(dist uint8, reason, operator string) error {
-	if mine.Status != ApplyStatusPending {
-		return errors.New("the apply now status not pending")
-	}
-	if dist == ApplyStatusPending {
-		return errors.New("the apply dist status is pending")
+	//if mine.Status != ApplyStatusPending {
+	//	return errors.New("the apply now status not pending")
+	//}
+	if dist == mine.Status {
+		//return errors.New("the apply dist status is pending")
+		return nil
 	}
 	err := nosql.UpdateApply(mine.UID, reason, operator, dist)
 	if err == nil {

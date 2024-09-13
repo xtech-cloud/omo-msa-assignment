@@ -139,6 +139,7 @@ func (mine *cacheContext) CreateApply(creator, scene, group, applicant, inviter,
 	var db = new(nosql.Apply)
 	db.UID = primitive.NewObjectID()
 	db.CreatedTime = time.Now()
+	db.UpdatedTime = time.Now()
 	db.ID = nosql.GetApplyNextID()
 	db.Creator = creator
 	db.Applicant = applicant
@@ -176,6 +177,8 @@ func (mine *ApplyInfo) initInfo(db *nosql.Apply) bool {
 	mine.Applicant = db.Applicant
 	mine.Status = db.Status
 	mine.Group = db.Group
+	mine.Remark = db.Remark
+	mine.Reason = db.Reason
 	return true
 }
 
@@ -190,6 +193,7 @@ func (mine *ApplyInfo) SetStatus(dist uint8, reason, operator string) error {
 	err := nosql.UpdateApply(mine.UID, reason, operator, dist)
 	if err == nil {
 		mine.Status = dist
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }

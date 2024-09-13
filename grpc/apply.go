@@ -26,6 +26,7 @@ func switchApply(info *cache.ApplyInfo) *pb.ApplyInfo {
 	tmp.Inviter = info.Inviter
 	tmp.Owner = info.Scene
 	tmp.Group = info.Group
+	tmp.Remark = info.Remark
 	tmp.Reason = info.Reason
 	return tmp
 }
